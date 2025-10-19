@@ -421,6 +421,11 @@ const Devices = () => {
                     <Radio className="w-3 h-3" />
                     {device.ipAddress}
                   </div>
+                  {device.wifiSSID && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      WiFi: {device.wifiSSID}
+                    </div>
+                  )}
                   {device.groupId && (() => {
                     const group = groups.find(g => g.id === device.groupId);
                     return group ? (

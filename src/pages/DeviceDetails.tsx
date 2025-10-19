@@ -222,7 +222,7 @@ const DeviceDetails = () => {
                 <div className="flex items-center gap-2">
                   {getConnectionIcon(device.connectionType)}
                   <span className="text-sm font-semibold">
-                    {device.connectionType === 'both' ? 'Både två' : device.connectionType === 'wifi' ? 'WiFi' : device.connectionType === 'ethernet' ? 'Ethernet' : 'Unknown'}
+                    {device.connectionType === 'both' ? 'Både två' : device.connectionType === 'wifi' ? (device.wifiSSID || 'WiFi') : device.connectionType === 'ethernet' ? 'Ethernet' : (device.wifiSSID || 'N/A')}
                   </span>
                 </div>
               </div>
