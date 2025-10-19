@@ -9,10 +9,11 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
-import { Radio, Plus, Play, Pause, Trash2, Volume2 } from 'lucide-react';
+import { Radio, Plus, Play, Pause, Trash2, Volume2, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Devices = () => {
@@ -26,7 +27,6 @@ const Devices = () => {
     ipAddress: '',
     groupId: ''
   });
-  const [bulkGroupId, setBulkGroupId] = useState('none');
   const [localVolumes, setLocalVolumes] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -205,36 +205,41 @@ const Devices = () => {
         </div>
         <div className="flex gap-2">
           {selectedDevices.size > 0 && (
-            <>
-              <Select value={bulkGroupId} onValueChange={setBulkGroupId}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Choose group" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Group</SelectItem>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={() => handleBulkAssignGroup(bulkGroupId)} className="gap-2">
-                Apply Group
-              </Button>
-              <Button variant="outline" onClick={() => handleBulkAction('play')} className="gap-2">
-                <Play className="w-4 h-4" />
-                Play Selected
-              </Button>
-              <Button variant="outline" onClick={() => handleBulkAction('pause')} className="gap-2">
-                <Pause className="w-4 h-4" />
-                Pause Selected
-              </Button>
-              <Button variant="destructive" onClick={() => handleBulkAction('delete')} className="gap-2">
-                <Trash2 className="w-4 h-4" />
-                Delete Selected
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <MoreVertical className="w-4 h-4" />
+                  Bulk Actions ({selectedDevices.size})
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleBulkAction('play')}>
+                  <Play className="w-4 h-4 mr-2" />
+                  Play Selected
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkAction('pause')}>
+                  <Pause className="w-4 h-4 mr-2" />
+                  Pause Selected
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Assign Group</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleBulkAssignGroup('none')}>
+                  No Group
+                </DropdownMenuItem>
+                {groups.map((group) => (
+                  <DropdownMenuItem key={group.id} onClick={() => handleBulkAssignGroup(group.id)}>
+                    {group.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleBulkAction('delete')} className="text-destructive">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
