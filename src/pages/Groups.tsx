@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Layers, Plus, Trash2, Radio, Link as LinkIcon, Upload, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +24,8 @@ const Groups = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
   const [editName, setEditName] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
   const [uploadType, setUploadType] = useState<'url' | 'local'>('url');
   const [formData, setFormData] = useState({
     name: '',
@@ -60,10 +63,11 @@ const Groups = () => {
   };
 
   const handleDelete = async (groupId: string) => {
-    if (!confirm('Are you sure you want to delete this group?')) return;
     try {
       await groupsApi.delete(groupId);
       toast.success('Group deleted');
+      setDeleteDialogOpen(false);
+      setGroupToDelete(null);
     } catch (error) {
       console.error('Error deleting group:', error);
       toast.error('Failed to delete group');
@@ -257,7 +261,8 @@ const Groups = () => {
                 className="w-full"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(group.id);
+                  setGroupToDelete(group.id);
+                  setDeleteDialogOpen(true);
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -310,6 +315,23 @@ const Groups = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort grupp</AlertDialogTitle>
+            <AlertDialogDescription>
+              Är du säker på att du vill ta bort denna grupp? Denna åtgärd kan inte ångras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={() => groupToDelete && handleDelete(groupToDelete)}>
+              Ta bort
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

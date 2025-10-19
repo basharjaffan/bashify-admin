@@ -9,6 +9,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Progress } from '../components/ui/progress';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WiFiSettings } from '../components/WiFiSettings';
@@ -29,6 +30,7 @@ const DeviceDetails = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateProgress, setUpdateProgress] = useState(0);
   const [updateStatus, setUpdateStatus] = useState('');
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
 
   useEffect(() => {
     if (!device) return;
@@ -104,11 +106,8 @@ const DeviceDetails = () => {
   };
 
   const handleFullUpdate = async () => {
-    if (!confirm('This will update DietPi, pull from GitHub, clean packages, and restart the device. Continue?')) {
-      return;
-    }
-    
     setIsUpdating(true);
+    setShowUpdateDialog(false);
     try {
       await commandsApi.send(device.id, 'full_update');
       toast.success('Full system update initiated. Device will restart.');
@@ -211,7 +210,7 @@ const DeviceDetails = () => {
             </Button>
 
             <Button 
-              onClick={handleFullUpdate} 
+              onClick={() => setShowUpdateDialog(true)} 
               variant="outline"
               disabled={isUpdating}
               className="gap-2"
@@ -392,6 +391,21 @@ const DeviceDetails = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <AlertDialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Full System Update</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will update DietPi, pull from GitHub, clean packages, and restart the device. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFullUpdate}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

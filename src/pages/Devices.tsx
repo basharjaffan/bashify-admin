@@ -10,6 +10,7 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
@@ -30,6 +31,9 @@ const Devices = () => {
   const [editingDevice, setEditingDevice] = useState<any>(null);
   const [editName, setEditName] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     ipAddress: '',
@@ -134,10 +138,11 @@ const Devices = () => {
   };
 
   const handleDelete = async (deviceId: string) => {
-    if (!confirm('Are you sure you want to delete this device?')) return;
     try {
       await devicesApi.delete(deviceId);
       toast.success('Device deleted');
+      setDeleteDialogOpen(false);
+      setDeviceToDelete(null);
     } catch (error) {
       console.error('Error deleting device:', error);
       toast.error('Failed to delete device');
@@ -169,17 +174,14 @@ const Devices = () => {
     }
 
     if (action === 'delete') {
-      if (!confirm(`Delete ${selectedDevices.size} device(s)?`)) return;
+      setBulkDeleteDialogOpen(true);
+      return;
     }
 
     try {
       const promises = Array.from(selectedDevices).map(deviceId => {
         const device = devices.find(d => d.id === deviceId);
-        if (action === 'delete') {
-          return devicesApi.delete(deviceId);
-        } else {
-          return commandsApi.send(deviceId, action, device?.streamUrl);
-        }
+        return commandsApi.send(deviceId, action, device?.streamUrl);
       });
       
       await Promise.all(promises);
@@ -188,6 +190,21 @@ const Devices = () => {
     } catch (error) {
       console.error(`Error performing bulk ${action}:`, error);
       toast.error(`Failed to perform bulk ${action}`);
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    try {
+      const promises = Array.from(selectedDevices).map(deviceId =>
+        devicesApi.delete(deviceId)
+      );
+      await Promise.all(promises);
+      toast.success(`${selectedDevices.size} device(s) deleted`);
+      setSelectedDevices(new Set());
+      setBulkDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error in bulk delete:', error);
+      toast.error('Failed to complete bulk delete');
     }
   };
 
@@ -505,7 +522,8 @@ const Devices = () => {
                   variant="destructive"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(device.id);
+                    setDeviceToDelete(device.id);
+                    setDeleteDialogOpen(true);
                   }}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -558,6 +576,40 @@ const Devices = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort enhet</AlertDialogTitle>
+            <AlertDialogDescription>
+              Är du säker på att du vill ta bort denna enhet? Denna åtgärd kan inte ångras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deviceToDelete && handleDelete(deviceToDelete)}>
+              Ta bort
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort enheter</AlertDialogTitle>
+            <AlertDialogDescription>
+              Är du säker på att du vill ta bort {selectedDevices.size} enhet(er)? Denna åtgärd kan inte ångras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete}>
+              Ta bort
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
