@@ -10,14 +10,15 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
+import { Skeleton } from '../components/ui/skeleton';
 import { Layers, ArrowLeft, Radio, LinkIcon, Upload, Play, Pause, Volume2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 const GroupDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { groups } = useGroups();
-  const { devices } = useDevices();
+  const { groups, loading: groupsLoading } = useGroups();
+  const { devices, loading: devicesLoading } = useDevices();
   const [editingUrl, setEditingUrl] = useState(false);
   const [streamUrl, setStreamUrl] = useState('');
 
@@ -118,6 +119,25 @@ const GroupDetails = () => {
     const config = variants[status] || variants.offline;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  if (groupsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-9 w-9 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-1/4" />
+          </div>
+        </div>
+        <Skeleton className="h-40 w-full rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Skeleton className="h-48 w-full rounded-lg" />
+          <Skeleton className="h-48 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
 
   if (!group) {
     return (
@@ -281,7 +301,7 @@ const GroupDetails = () => {
           ))}
         </div>
 
-        {groupDevices.length === 0 && (
+        {(!devicesLoading && groupDevices.length === 0) && (
           <Card className="shadow-card">
             <CardContent className="py-16 text-center">
               <Radio className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
