@@ -84,12 +84,44 @@ const Devices = () => {
     }
   };
 
-  const handleVolumeChange = async (deviceId: string, value: number[]) => {
+  // Explicit controls to satisfy "disable Play when already playing"
+  const handlePlay = async (device: any) => {
+    if (device.status === 'playing') return; // prevent play while already playing
     try {
-      await devicesApi.update(deviceId, { volume: value[0] });
-      await commandsApi.send(deviceId, 'volume', undefined, value[0]);
+      await commandsApi.send(device.id, 'play', device.streamUrl);
+      toast.success('Device playing');
+    } catch (error) {
+      console.error('Error starting playback:', error);
+      toast.error('Failed to start playback');
+    }
+  };
+
+  const handlePause = async (device: any) => {
+    if (device.status !== 'playing') return; // pause only when playing
+    try {
+      await commandsApi.send(device.id, 'pause', device.streamUrl);
+      toast.success('Device paused');
+    } catch (error) {
+      console.error('Error pausing device:', error);
+      toast.error('Failed to pause device');
+    }
+  };
+
+  const handleVolumeChange = async (deviceId: string, value: number[]) => {
+    const vol = value[0];
+    // Ensure local state reflects committed value too
+    setLocalVolumes((prev) => ({ ...prev, [deviceId]: vol }));
+    try {
+      await devicesApi.update(deviceId, { volume: vol });
+      // Send both common action names for compatibility
+      await Promise.all([
+        commandsApi.send(deviceId, 'volume', undefined, vol),
+        commandsApi.send(deviceId, 'set_volume', undefined, vol),
+      ]);
+      toast.success(`Volym uppdaterad till ${vol}%`);
     } catch (error) {
       console.error('Error updating volume:', error);
+      toast.error('Misslyckades att uppdatera volym');
     }
   };
 
@@ -322,7 +354,7 @@ const Devices = () => {
         {devices.map((device) => (
           <Card 
             key={device.id} 
-            className="shadow-card hover:shadow-glow transition-shadow"
+            className="shadow-card hover:shadow-glow transition-shadow overflow-hidden"
           >
             <CardHeader>
               <div className="flex items-start gap-3">
@@ -370,11 +402,6 @@ const Devices = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  {device.streamUrl && (
-                    <div className="text-xs text-muted-foreground mt-2 truncate">
-                      {device.streamUrl}
-                    </div>
-                  )}
                 </div>
               </div>
             </CardHeader>
@@ -402,22 +429,27 @@ const Devices = () => {
                   size="sm"
                   variant="outline"
                   className="flex-1"
+                  disabled={device.status === 'playing'}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handlePlayPause(device);
+                    handlePlay(device);
                   }}
                 >
-                  {device.status === 'playing' ? (
-                    <>
-                      <Pause className="w-4 h-4 mr-1" />
-                      Pause
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 mr-1" />
-                      Play
-                    </>
-                  )}
+                  <Play className="w-4 h-4 mr-1" />
+                  Play
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={device.status !== 'playing'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePause(device);
+                  }}
+                >
+                  <Pause className="w-4 h-4 mr-1" />
+                  Pause
                 </Button>
                 <Button
                   size="sm"
