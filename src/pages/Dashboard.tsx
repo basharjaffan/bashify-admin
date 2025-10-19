@@ -5,10 +5,32 @@ import { Badge } from '../components/ui/badge';
 import { Radio, Layers, Activity, Users, Play, Circle, CheckCircle2, XCircle, Zap } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart';
+import { useEffect, useState } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const Dashboard = () => {
   const { devices, loading: devicesLoading } = useDevices();
   const { groups, loading: groupsLoading } = useGroups();
+  const [mqttStatus, setMqttStatus] = useState({ status: 'Checking...', url: '', statusColor: 'text-yellow-500' });
+
+  useEffect(() => {
+    const systemRef = doc(db, 'config', 'system');
+    const unsubscribe = onSnapshot(systemRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const isOnline = data.mqttBrokerStatus === 'online';
+        setMqttStatus({
+          status: isOnline ? 'Online' : 'Offline',
+          url: data.mqttBrokerUrl || 'unknown',
+          statusColor: isOnline ? 'text-green-500' : 'text-red-500'
+        });
+      } else {
+        setMqttStatus({ status: 'Unknown', url: 'N/A', statusColor: 'text-muted-foreground' });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const onlineDevices = devices.filter(d => d.status === 'online' || d.status === 'playing').length;
   const playingDevices = devices.filter(d => d.status === 'playing').length;
@@ -81,7 +103,7 @@ const Dashboard = () => {
   // System health
   const systemHealth = [
     { label: 'Firebase Connection', status: 'Connected', value: null, statusColor: 'text-green-500' },
-    { label: 'MQTT Broker', status: 'Online', value: 'localhost:1883', statusColor: 'text-green-500' },
+    { label: 'MQTT Broker', status: mqttStatus.status, value: mqttStatus.url, statusColor: mqttStatus.statusColor },
     { label: 'Active Devices', status: null, value: `${onlineDevices}/${devices.length}`, statusColor: 'text-blue-500' },
     { label: 'Offline Devices', status: null, value: offlineDevices.toString(), statusColor: 'text-muted-foreground' },
   ];
