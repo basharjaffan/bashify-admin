@@ -1,5 +1,4 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { 
   LayoutDashboard, 
@@ -12,7 +11,6 @@ import {
 } from 'lucide-react';
 
 const Layout = () => {
-  const { logout } = useAuth();
   const location = useLocation();
 
   const navigation = [
@@ -63,12 +61,12 @@ const Layout = () => {
 
         <div className="p-4 border-t border-sidebar-border">
           <Button 
-            onClick={logout} 
             variant="outline" 
             className="w-full justify-start gap-3"
+            disabled
           >
             <LogOut className="w-5 h-5" />
-            Logga ut
+            Logga ut (inaktiverad)
           </Button>
         </div>
       </aside>
