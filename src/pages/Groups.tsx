@@ -8,13 +8,21 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
-import { Layers, Plus, Trash2, Radio, Link as LinkIcon, Upload } from 'lucide-react';
+import { Layers, Plus, Trash2, Radio, Link as LinkIcon, Upload, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+const groupNameSchema = z.object({
+  name: z.string().trim().min(1, { message: "Namn kan inte vara tomt" }).max(100, { message: "Namn måste vara mindre än 100 tecken" })
+});
 
 const Groups = () => {
   const navigate = useNavigate();
   const { groups, loading } = useGroups();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<any>(null);
+  const [editName, setEditName] = useState('');
   const [uploadType, setUploadType] = useState<'url' | 'local'>('url');
   const [formData, setFormData] = useState({
     name: '',
@@ -59,6 +67,32 @@ const Groups = () => {
     } catch (error) {
       console.error('Error deleting group:', error);
       toast.error('Failed to delete group');
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent, group: any) => {
+    e.stopPropagation();
+    setEditingGroup(group);
+    setEditName(group.name);
+    setEditOpen(true);
+  };
+
+  const handleUpdateName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const validated = groupNameSchema.parse({ name: editName });
+      await groupsApi.update(editingGroup.id, { name: validated.name });
+      toast.success('Gruppnamn uppdaterat');
+      setEditOpen(false);
+      setEditingGroup(null);
+      setEditName('');
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        console.error('Error updating group name:', error);
+        toast.error('Misslyckades att uppdatera gruppnamn');
+      }
     }
   };
 
@@ -173,7 +207,17 @@ const Groups = () => {
                   <Layers className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-lg">{group.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg">{group.name}</CardTitle>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => handleEditClick(e, group)}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  </div>
                   <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                     <Radio className="w-3 h-3" />
                     {group.deviceCount || 0} devices
@@ -239,6 +283,33 @@ const Groups = () => {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redigera gruppnamn</DialogTitle>
+            <DialogDescription>
+              Ändra namnet på gruppen
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateName}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Gruppnamn</Label>
+                <Input
+                  id="edit-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Spara</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

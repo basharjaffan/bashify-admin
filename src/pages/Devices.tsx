@@ -13,14 +13,22 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
-import { Radio, Plus, Play, Pause, Trash2, Volume2, MoreVertical } from 'lucide-react';
+import { Radio, Plus, Play, Pause, Trash2, Volume2, MoreVertical, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+const deviceNameSchema = z.object({
+  name: z.string().trim().min(1, { message: "Namn kan inte vara tomt" }).max(100, { message: "Namn måste vara mindre än 100 tecken" })
+});
 
 const Devices = () => {
   const navigate = useNavigate();
   const { devices, loading } = useDevices();
   const { groups } = useGroups();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<any>(null);
+  const [editName, setEditName] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     name: '',
@@ -220,6 +228,32 @@ const Devices = () => {
     }
   };
 
+  const handleEditClick = (e: React.MouseEvent, device: any) => {
+    e.stopPropagation();
+    setEditingDevice(device);
+    setEditName(device.name);
+    setEditOpen(true);
+  };
+
+  const handleUpdateName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const validated = deviceNameSchema.parse({ name: editName });
+      await devicesApi.update(editingDevice.id, { name: validated.name });
+      toast.success('Enhetsnamn uppdaterat');
+      setEditOpen(false);
+      setEditingDevice(null);
+      setEditName('');
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        console.error('Error updating device name:', error);
+        toast.error('Misslyckades att uppdatera enhetsnamn');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -364,13 +398,23 @@ const Devices = () => {
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <CardTitle 
-                      className="text-lg cursor-pointer hover:text-primary transition-colors"
-                      onClick={() => navigate(`/devices/${device.id}`)}
-                    >
-                      {device.name}
-                    </CardTitle>
+                  <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <CardTitle 
+                        className="text-lg cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => navigate(`/devices/${device.id}`)}
+                      >
+                        {device.name}
+                      </CardTitle>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={(e) => handleEditClick(e, device)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    </div>
                     {getStatusBadge(device.status)}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -482,6 +526,33 @@ const Devices = () => {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redigera enhetsnamn</DialogTitle>
+            <DialogDescription>
+              Ändra namnet på enheten
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateName}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Enhetsnamn</Label>
+                <Input
+                  id="edit-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Spara</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
