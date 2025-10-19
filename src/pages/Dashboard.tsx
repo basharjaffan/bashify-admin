@@ -45,10 +45,10 @@ const Dashboard = () => {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
       online: { variant: 'default', label: 'Online' },
-      playing: { variant: 'default', label: 'Spelar' },
+      playing: { variant: 'default', label: 'Playing' },
       offline: { variant: 'destructive', label: 'Offline' },
-      paused: { variant: 'secondary', label: 'Pausad' },
-      unconfigured: { variant: 'outline', label: 'Okonfigurerad' }
+      paused: { variant: 'secondary', label: 'Paused' },
+      unconfigured: { variant: 'outline', label: 'Unconfigured' }
     };
     const config = variants[status] || variants.offline;
     return <Badge variant={config.variant}>{config.label}</Badge>;

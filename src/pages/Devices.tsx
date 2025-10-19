@@ -251,7 +251,7 @@ const Devices = () => {
         {devices.map((device) => (
           <Card 
             key={device.id} 
-            className="shadow-card cursor-pointer hover:shadow-glow transition-shadow"
+            className="shadow-card hover:shadow-glow transition-shadow"
           >
             <CardHeader>
               <div className="flex items-start gap-3">
@@ -260,12 +260,14 @@ const Devices = () => {
                   onCheckedChange={() => toggleDeviceSelection(device.id)}
                   onClick={(e) => e.stopPropagation()}
                 />
-                <div 
-                  className="flex-1"
-                  onClick={() => navigate(`/devices/${device.id}`)}
-                >
+                <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <CardTitle className="text-lg">{device.name}</CardTitle>
+                    <CardTitle 
+                      className="text-lg cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => navigate(`/devices/${device.id}`)}
+                    >
+                      {device.name}
+                    </CardTitle>
                     {getStatusBadge(device.status)}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">

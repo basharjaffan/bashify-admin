@@ -8,7 +8,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
-import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DeviceDetails = () => {
@@ -16,11 +16,12 @@ const DeviceDetails = () => {
   const navigate = useNavigate();
   const { devices } = useDevices();
   const device = devices.find(d => d.id === id);
-  const [streamUrl, setStreamUrl] = useState(device?.streamUrl || '');
   const [wifiSSID, setWifiSSID] = useState(device?.wifiSSID || '');
   const [wifiPassword, setWifiPassword] = useState('');
   const [ipAddress, setIpAddress] = useState(device?.ipAddress || '');
+  const [gateway, setGateway] = useState('');
   const [dns, setDns] = useState(device?.dns || '');
+  const [altDns, setAltDns] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   if (!device) {
@@ -72,16 +73,6 @@ const DeviceDetails = () => {
     }
   };
 
-  const handleUpdateStream = async () => {
-    try {
-      await devicesApi.update(device.id, { streamUrl });
-      toast.success('Stream URL updated');
-    } catch (error) {
-      console.error('Error updating stream:', error);
-      toast.error('Failed to update stream URL');
-    }
-  };
-
   const handleFullUpdate = async () => {
     if (!confirm('This will update DietPi, pull from GitHub, clean packages, and restart the device. Continue?')) {
       return;
@@ -112,7 +103,9 @@ const DeviceDetails = () => {
           ssid: wifiSSID,
           password: wifiPassword,
           ipAddress,
-          dns
+          gateway,
+          dns,
+          altDns
         }));
       }
       
@@ -162,87 +155,133 @@ const DeviceDetails = () => {
         {getStatusBadge(device.status)}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Connection</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {getConnectionIcon(device.connectionType)}
-              <span className="text-xl font-bold">
-                {device.connectionType || 'Unknown'}
-              </span>
-            </div>
-            {device.wifiSSID && (
-              <p className="text-xs text-muted-foreground mt-1">SSID: {device.wifiSSID}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Uptime</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
-              <span className="text-xl font-bold">{formatUptime(device.uptime)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Last Seen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-accent" />
-              <span className="text-sm font-semibold">{formatLastSeen(device.lastSeen)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Volume</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Radio className="w-4 h-4 text-success" />
-              <span className="text-xl font-bold">{device.volume || 50}%</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* System Update */}
+      {/* Controls Section */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
-            System Update
-          </CardTitle>
+          <CardTitle>Controls</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Perform a full system update including DietPi, GitHub pull, package cleanup, and restart.
-          </p>
-          <Button 
-            onClick={handleFullUpdate} 
-            variant="default"
-            disabled={isUpdating}
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
-            {isUpdating ? 'Updating...' : 'Full System Update & Restart'}
-          </Button>
+        <CardContent className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button
+              size="lg"
+              onClick={handlePlayPause}
+              className="gap-2"
+            >
+              {device.status === 'playing' ? (
+                <>
+                  <Pause className="w-5 h-5" />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play className="w-5 h-5" />
+                  Play
+                </>
+              )}
+            </Button>
+
+            <Button 
+              onClick={handleFullUpdate} 
+              variant="outline"
+              disabled={isUpdating}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-5 h-5 ${isUpdating ? 'animate-spin' : ''}`} />
+              {isUpdating ? 'Updating...' : 'Full System Update'}
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <Volume2 className="w-4 h-4" />
+                Volume
+              </Label>
+              <span className="text-sm font-semibold">{device.volume || 50}%</span>
+            </div>
+            <Slider
+              value={[device.volume || 50]}
+              onValueChange={handleVolumeChange}
+              max={100}
+              step={1}
+            />
+          </div>
         </CardContent>
       </Card>
 
-      {/* Network Configuration */}
+      {/* Device Info Section */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle>Device Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">Connection</span>
+                <div className="flex items-center gap-2">
+                  {getConnectionIcon(device.connectionType)}
+                  <span className="text-sm font-semibold">
+                    {device.connectionType || 'Unknown'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">Uptime</span>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold">{formatUptime(device.uptime)}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">Last Seen</span>
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-accent" />
+                  <span className="text-sm font-semibold">{formatLastSeen(device.lastSeen)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {device.deviceId && (
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Device ID</span>
+                  <code className="text-xs">{device.deviceId}</code>
+                </div>
+              )}
+              {device.groupId && (
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Group ID</span>
+                  <code className="text-xs">{device.groupId}</code>
+                </div>
+              )}
+              {device.wifiSSID && (
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">WiFi SSID</span>
+                  <span className="text-sm">{device.wifiSSID}</span>
+                </div>
+              )}
+              {device.dns && (
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">DNS</span>
+                  <code className="text-xs">{device.dns}</code>
+                </div>
+              )}
+              {device.streamUrl && (
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Stream URL</span>
+                  <span className="text-xs truncate max-w-[200px]">{device.streamUrl}</span>
+                </div>
+              )}
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Created</span>
+                <span className="text-sm">{formatLastSeen(device.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Network Configuration Section */}
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -281,6 +320,15 @@ const DeviceDetails = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="gateway">Gateway</Label>
+              <Input
+                id="gateway"
+                value={gateway}
+                onChange={(e) => setGateway(e.target.value)}
+                placeholder="192.168.1.1"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="dns">DNS Server</Label>
               <Input
                 id="dns"
@@ -289,93 +337,20 @@ const DeviceDetails = () => {
                 placeholder="8.8.8.8"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="alt-dns">Alternate DNS</Label>
+              <Input
+                id="alt-dns"
+                value={altDns}
+                onChange={(e) => setAltDns(e.target.value)}
+                placeholder="8.8.4.4"
+              />
+            </div>
           </div>
           <Button onClick={handleNetworkConfig} className="gap-2">
             <Wifi className="w-4 h-4" />
             Apply Network Configuration
           </Button>
-        </CardContent>
-      </Card>
-
-      {/* Controls */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Controls</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Button
-              size="lg"
-              onClick={handlePlayPause}
-              className="gap-2"
-            >
-              {device.status === 'playing' ? (
-                <>
-                  <Pause className="w-5 h-5" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5" />
-                  Play
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Volume: {device.volume || 50}%</Label>
-            <Slider
-              value={[device.volume || 50]}
-              onValueChange={handleVolumeChange}
-              max={100}
-              step={1}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="stream">Stream URL</Label>
-            <div className="flex gap-2">
-              <Input
-                id="stream"
-                value={streamUrl}
-                onChange={(e) => setStreamUrl(e.target.value)}
-                placeholder="https://stream-url.com/radio"
-              />
-              <Button onClick={handleUpdateStream}>Update</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Device Info */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Device Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {device.deviceId && (
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Device ID</span>
-              <code className="text-sm">{device.deviceId}</code>
-            </div>
-          )}
-          {device.groupId && (
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Group ID</span>
-              <code className="text-sm">{device.groupId}</code>
-            </div>
-          )}
-          {device.dns && (
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">DNS</span>
-              <code className="text-sm">{device.dns}</code>
-            </div>
-          )}
-          <div className="flex justify-between py-2">
-            <span className="text-muted-foreground">Created</span>
-            <span className="text-sm">{formatLastSeen(device.createdAt)}</span>
-          </div>
         </CardContent>
       </Card>
     </div>
