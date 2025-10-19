@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDevices } from '../hooks/useDevices';
 import { devicesApi, commandsApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,9 +8,12 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
+import { Progress } from '../components/ui/progress';
 import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WiFiSettings } from '../components/WiFiSettings';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const DeviceDetails = () => {
   const { id } = useParams();
@@ -24,6 +27,28 @@ const DeviceDetails = () => {
   const [dns, setDns] = useState(device?.dns || '');
   const [altDns, setAltDns] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateStatus, setUpdateStatus] = useState('');
+
+  useEffect(() => {
+    if (!device) return;
+    
+    const deviceRef = doc(db, 'devices', device.id);
+    const unsubscribe = onSnapshot(deviceRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.updateProgress !== undefined) {
+          setUpdateProgress(data.updateProgress);
+          setIsUpdating(data.updateProgress > 0 && data.updateProgress < 100);
+        }
+        if (data.updateStatus) {
+          setUpdateStatus(data.updateStatus);
+        }
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [device?.id]);
 
   if (!device) {
     return (
@@ -195,6 +220,19 @@ const DeviceDetails = () => {
               {isUpdating ? 'Updating...' : 'Full System Update'}
             </Button>
           </div>
+
+          {isUpdating && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Update Progress</span>
+                <span className="text-sm font-semibold">{updateProgress}%</span>
+              </div>
+              <Progress value={updateProgress} className="h-2" />
+              {updateStatus && (
+                <p className="text-xs text-muted-foreground">{updateStatus}</p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">

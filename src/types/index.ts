@@ -22,6 +22,8 @@ export interface Device {
   cpuUsage?: number;
   memoryUsage?: number;
   diskUsage?: number;
+  updateProgress?: number;
+  updateStatus?: string;
 }
 
 export interface Group {
