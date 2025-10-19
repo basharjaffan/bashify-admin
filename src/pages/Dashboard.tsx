@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,7 +7,6 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart';
 
 const Dashboard = () => {
-  const [mqttStatus, setMqttStatus] = useState({ status: 'Checking...', url: '' });
   const { devices, loading: devicesLoading } = useDevices();
   const { groups, loading: groupsLoading } = useGroups();
 
