@@ -275,6 +275,16 @@ const Devices = () => {
                     <Radio className="w-3 h-3" />
                     {device.ipAddress}
                   </div>
+                  {device.groupId && (() => {
+                    const group = groups.find(g => g.id === device.groupId);
+                    return group ? (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {group.name}
+                        </Badge>
+                      </div>
+                    ) : null;
+                  })()}
                   {device.streamUrl && (
                     <div className="text-xs text-muted-foreground mt-2 truncate">
                       {device.streamUrl}
