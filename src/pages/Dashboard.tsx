@@ -13,31 +13,31 @@ const Dashboard = () => {
 
   const stats = [
     {
-      title: 'Totalt Enheter',
+      title: 'Total Devices',
       value: devices.length,
       icon: Radio,
       description: `${onlineDevices} online`,
       color: 'text-primary'
     },
     {
-      title: 'Spelar Nu',
+      title: 'Playing Now',
       value: playingDevices,
       icon: Activity,
-      description: 'Aktiva strömmar',
+      description: 'Active streams',
       color: 'text-accent'
     },
     {
-      title: 'Grupper',
+      title: 'Groups',
       value: groups.length,
       icon: Layers,
-      description: 'Konfigurerade grupper',
+      description: 'Configured groups',
       color: 'text-success'
     },
     {
       title: 'Offline',
       value: devices.length - onlineDevices,
       icon: Users,
-      description: 'Kräver uppmärksamhet',
+      description: 'Needs attention',
       color: 'text-destructive'
     }
   ];
@@ -57,7 +57,7 @@ const Dashboard = () => {
   if (devicesLoading || groupsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Laddar...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -66,7 +66,7 @@ const Dashboard = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Översikt över ditt musiksystem</p>
+        <p className="text-muted-foreground">Overview of your music system</p>
       </div>
 
       {/* Stats Grid */}
@@ -93,12 +93,12 @@ const Dashboard = () => {
       {/* Recent Devices */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Senaste Enheter</CardTitle>
+          <CardTitle>Recent Devices</CardTitle>
         </CardHeader>
         <CardContent>
           {devices.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Inga enheter konfigurerade än
+              No devices configured yet
             </div>
           ) : (
             <div className="space-y-4">

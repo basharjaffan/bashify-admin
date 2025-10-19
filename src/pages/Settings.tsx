@@ -6,8 +6,8 @@ const Settings = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Inställningar</h1>
-        <p className="text-muted-foreground">Konfigurera systemet</p>
+        <h1 className="text-3xl font-bold mb-2">Settings</h1>
+        <p className="text-muted-foreground">Configure the system</p>
       </div>
 
       <div className="grid gap-6">
@@ -18,8 +18,8 @@ const Settings = () => {
                 <Database className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <CardTitle>Firebase Databas</CardTitle>
-                <CardDescription>Anslutningsstatus och konfiguration</CardDescription>
+                <CardTitle>Firebase Database</CardTitle>
+                <CardDescription>Connection status and configuration</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -27,7 +27,7 @@ const Settings = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Status</span>
-                <Badge variant="default">Ansluten</Badge>
+                <Badge variant="default">Connected</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Project ID</span>
@@ -35,7 +35,7 @@ const Settings = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Real-time Sync</span>
-                <Badge variant="default">Aktiv</Badge>
+                <Badge variant="default">Active</Badge>
               </div>
             </div>
           </CardContent>
@@ -48,8 +48,8 @@ const Settings = () => {
                 <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <CardTitle>Säkerhet</CardTitle>
-                <CardDescription>Autentisering och åtkomst</CardDescription>
+                <CardTitle>Security</CardTitle>
+                <CardDescription>Authentication and access</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -57,11 +57,11 @@ const Settings = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Firebase Auth</span>
-                <Badge variant="default">Aktiverad</Badge>
+                <Badge variant="default">Enabled</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">2FA</span>
-                <Badge variant="outline">Inaktiverad</Badge>
+                <Badge variant="outline">Disabled</Badge>
               </div>
             </div>
           </CardContent>
@@ -74,20 +74,20 @@ const Settings = () => {
                 <Bell className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <CardTitle>Notifikationer</CardTitle>
-                <CardDescription>Aviseringar och påminnelser</CardDescription>
+                <CardTitle>Notifications</CardTitle>
+                <CardDescription>Alerts and reminders</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Enhetsaviseringar</span>
-                <Badge variant="default">På</Badge>
+                <span className="text-sm text-muted-foreground">Device alerts</span>
+                <Badge variant="default">On</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">E-postnotiser</span>
-                <Badge variant="default">På</Badge>
+                <span className="text-sm text-muted-foreground">Email notifications</span>
+                <Badge variant="default">On</Badge>
               </div>
             </div>
           </CardContent>

@@ -24,30 +24,30 @@ const Users = () => {
         name: formData.name,
         email: formData.email
       });
-      toast.success('Användare tillagd!');
+      toast.success('User added successfully!');
       setOpen(false);
       setFormData({ name: '', email: '' });
     } catch (error) {
       console.error('Error creating user:', error);
-      toast.error('Kunde inte lägga till användare');
+      toast.error('Failed to add user');
     }
   };
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('Är du säker på att du vill ta bort denna användare?')) return;
+    if (!confirm('Are you sure you want to delete this user?')) return;
     try {
       await usersApi.delete(userId);
-      toast.success('Användare borttagen');
+      toast.success('User deleted');
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast.error('Kunde inte ta bort användare');
+      toast.error('Failed to delete user');
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Laddar användare...</div>
+        <div className="text-muted-foreground">Loading users...</div>
       </div>
     );
   }
@@ -56,27 +56,27 @@ const Users = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Användare</h1>
-          <p className="text-muted-foreground">Hantera systemanvändare</p>
+          <h1 className="text-3xl font-bold mb-2">Users</h1>
+          <p className="text-muted-foreground">Manage system users</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="w-4 h-4" />
-              Lägg till Användare
+              Add User
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Lägg till ny användare</DialogTitle>
+              <DialogTitle>Add New User</DialogTitle>
               <DialogDescription>
-                Skapa en ny användare för systemet
+                Create a new user for the system
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Namn</Label>
+                  <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
                     placeholder="John Doe"
@@ -86,7 +86,7 @@ const Users = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-post</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -98,7 +98,7 @@ const Users = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Lägg till</Button>
+                <Button type="submit">Add User</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -130,7 +130,7 @@ const Users = () => {
                 onClick={() => handleDelete(user.id)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Ta bort
+                Delete
               </Button>
             </CardContent>
           </Card>
@@ -141,13 +141,13 @@ const Users = () => {
         <Card className="shadow-card">
           <CardContent className="py-16 text-center">
             <UsersIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">Inga användare ännu</h3>
+            <h3 className="text-xl font-semibold mb-2">No users yet</h3>
             <p className="text-muted-foreground mb-6">
-              Lägg till din första användare för att komma igång
+              Add your first user to get started
             </p>
             <Button onClick={() => setOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
-              Lägg till första användaren
+              Add First User
             </Button>
           </CardContent>
         </Card>

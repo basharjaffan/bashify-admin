@@ -19,18 +19,18 @@ const Login = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error('Fyll i alla fält');
+      toast.error('Please fill in all fields');
       return;
     }
 
     setLoading(true);
     try {
       await login(email, password);
-      toast.success('Välkommen tillbaka!');
+      toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('Fel vid inloggning. Kontrollera dina uppgifter.');
+      toast.error('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -45,13 +45,13 @@ const Login = () => {
           </div>
           <div>
             <CardTitle className="text-2xl">Bashify Admin</CardTitle>
-            <CardDescription>Logga in för att hantera ditt musiksystem</CardDescription>
+            <CardDescription>Login to manage your music system</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-post</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -62,7 +62,7 @@ const Login = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Lösenord</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -77,15 +77,15 @@ const Login = () => {
               className="w-full" 
               disabled={loading}
             >
-              {loading ? 'Loggar in...' : 'Logga in'}
+              {loading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
           
           <div className="mt-6 p-4 bg-muted rounded-lg flex gap-3">
             <AlertCircle className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
             <div className="text-sm text-muted-foreground">
-              <p className="font-medium mb-1">Demo-inloggning:</p>
-              <p>Skapa ett konto i Firebase Console eller använd dina egna inloggningsuppgifter.</p>
+              <p className="font-medium mb-1">Demo Login:</p>
+              <p>Create an account in Firebase Console or use your own credentials.</p>
             </div>
           </div>
         </CardContent>

@@ -13,10 +13,10 @@ const Layout = () => {
 
   const navigation = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Enheter', path: '/devices', icon: Radio },
-    { name: 'Grupper', path: '/groups', icon: Layers },
-    { name: 'Användare', path: '/users', icon: Users },
-    { name: 'Inställningar', path: '/settings', icon: Settings },
+    { name: 'Devices', path: '/devices', icon: Radio },
+    { name: 'Groups', path: '/groups', icon: Layers },
+    { name: 'Users', path: '/users', icon: Users },
+    { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');

@@ -9,6 +9,10 @@ export interface Device {
   streamUrl?: string;
   lastSeen?: any;
   createdAt?: any;
+  uptime?: number;
+  connectionType?: 'wifi' | 'ethernet' | 'both';
+  wifiSSID?: string;
+  dns?: string;
 }
 
 export interface Group {
@@ -17,6 +21,8 @@ export interface Group {
   streamUrl?: string;
   deviceCount?: number;
   createdAt?: any;
+  localFiles?: string[];
+  uploadType?: 'url' | 'local';
 }
 
 export interface User {
