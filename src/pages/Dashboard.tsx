@@ -86,14 +86,6 @@ const Dashboard = () => {
     { label: 'Offline Devices', status: null, value: offlineDevices.toString(), statusColor: 'text-muted-foreground' },
   ];
 
-  // Quick stats
-  const quickStats = [
-    { label: 'Currently Playing', value: playingDevices, color: 'text-blue-500' },
-    { label: 'Online Devices', value: onlineDevices, color: 'text-green-500' },
-    { label: 'Offline Devices', value: offlineDevices, color: 'text-red-500' },
-    { label: 'Active Groups', value: groups.length, color: 'text-purple-500' },
-  ];
-
   if (devicesLoading || groupsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -289,23 +281,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Stats</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {quickStats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className={`text-4xl font-bold ${stat.color}`}>{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-2">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
