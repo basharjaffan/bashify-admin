@@ -34,15 +34,26 @@ const GroupDetails = () => {
   const handleUpdateUrl = async () => {
     if (!id) return;
     try {
-      await groupsApi.update(id, { streamUrl });
+      // First, stop all playing devices
+      const stopPromises = groupDevices
+        .filter(device => device.status === 'playing')
+        .map(device => commandsApi.send(device.id, 'pause'));
+      await Promise.all(stopPromises);
       
-      // Update all devices in the group with the new stream URL
+      // Update group and all devices with the new stream URL
+      await groupsApi.update(id, { streamUrl });
       const updatePromises = groupDevices.map(device => 
         devicesApi.update(device.id, { streamUrl })
       );
       await Promise.all(updatePromises);
       
-      toast.success('Stream URL updated for all devices');
+      // Start playing with new URL on devices that were playing
+      const playPromises = groupDevices
+        .filter(device => device.status === 'playing')
+        .map(device => commandsApi.send(device.id, 'play', streamUrl));
+      await Promise.all(playPromises);
+      
+      toast.success('Stream URL updated and restarted for all devices');
       setEditingUrl(false);
     } catch (error) {
       console.error('Error updating stream URL:', error);
