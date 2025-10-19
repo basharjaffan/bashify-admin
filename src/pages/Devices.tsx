@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
@@ -26,6 +26,18 @@ const Devices = () => {
     ipAddress: '',
     groupId: ''
   });
+  const [bulkGroupId, setBulkGroupId] = useState('none');
+  const [localVolumes, setLocalVolumes] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setLocalVolumes((prev) => {
+      const next: Record<string, number> = { ...prev };
+      devices.forEach((d) => {
+        if (next[d.id] === undefined) next[d.id] = d.volume ?? 50;
+      });
+      return next;
+    });
+  }, [devices]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
@@ -139,6 +151,43 @@ const Devices = () => {
     }
   };
 
+  const handleDeviceGroupChange = async (deviceId: string, newGroupId: string) => {
+    try {
+      const hasGroup = newGroupId && newGroupId !== 'none';
+      const selectedGroup = groups.find(g => g.id === newGroupId);
+      await devicesApi.update(deviceId, {
+        groupId: hasGroup ? newGroupId : undefined,
+        streamUrl: hasGroup ? selectedGroup?.streamUrl : undefined
+      });
+      toast.success('Group updated');
+    } catch (error) {
+      console.error('Error updating device group:', error);
+      toast.error('Failed to update group');
+    }
+  };
+
+  const handleBulkAssignGroup = async (newGroupId: string) => {
+    if (selectedDevices.size === 0) {
+      toast.error('No devices selected');
+      return;
+    }
+    try {
+      const hasGroup = newGroupId && newGroupId !== 'none';
+      const selectedGroup = groups.find(g => g.id === newGroupId);
+      const updates = Array.from(selectedDevices).map((deviceId) =>
+        devicesApi.update(deviceId, {
+          groupId: hasGroup ? newGroupId : undefined,
+          streamUrl: hasGroup ? selectedGroup?.streamUrl : undefined,
+        })
+      );
+      await Promise.all(updates);
+      toast.success('Group assignment completed');
+    } catch (error) {
+      console.error('Error assigning group in bulk:', error);
+      toast.error('Failed to assign group');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -157,6 +206,22 @@ const Devices = () => {
         <div className="flex gap-2">
           {selectedDevices.size > 0 && (
             <>
+              <Select value={bulkGroupId} onValueChange={setBulkGroupId}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Choose group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Group</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => handleBulkAssignGroup(bulkGroupId)} className="gap-2">
+                Apply Group
+              </Button>
               <Button variant="outline" onClick={() => handleBulkAction('play')} className="gap-2">
                 <Play className="w-4 h-4" />
                 Play Selected
@@ -285,6 +350,21 @@ const Devices = () => {
                       </div>
                     ) : null;
                   })()}
+                  <div className="mt-2">
+                    <Select value={device.groupId || 'none'} onValueChange={(value) => handleDeviceGroupChange(device.id, value)}>
+                      <SelectTrigger className="h-8 w-[180px]">
+                        <SelectValue placeholder="Assign group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Group</SelectItem>
+                        {groups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   {device.streamUrl && (
                     <div className="text-xs text-muted-foreground mt-2 truncate">
                       {device.streamUrl}
@@ -300,11 +380,12 @@ const Devices = () => {
                     <Volume2 className="w-3 h-3" />
                     Volume
                   </span>
-                  <span>{device.volume || 50}%</span>
+                  <span>{(localVolumes[device.id] ?? device.volume ?? 50)}%</span>
                 </div>
                 <Slider
-                  value={[device.volume || 50]}
-                  onValueChange={(value) => handleVolumeChange(device.id, value)}
+                  value={[localVolumes[device.id] ?? device.volume ?? 50]}
+                  onValueChange={(value) => setLocalVolumes((prev) => ({ ...prev, [device.id]: value[0] }))}
+                  onValueCommit={(value) => handleVolumeChange(device.id, value)}
                   max={100}
                   step={1}
                   onClick={(e) => e.stopPropagation()}
