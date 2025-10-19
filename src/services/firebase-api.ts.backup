@@ -85,7 +85,7 @@ export const groupsApi = {
 // Users API
 export const usersApi = {
   subscribe: (callback: (users: User[]) => void) => {
-    const usersRef = collection(db, 'users');
+    const usersRef = collection(db, 'config', 'users', 'list');
     
     return onSnapshot(usersRef, (snapshot) => {
       const users = snapshot.docs.map(doc => ({
@@ -97,7 +97,7 @@ export const usersApi = {
   },
 
   create: async (data: Omit<User, 'id'>) => {
-    const usersRef = collection(db, 'users');
+    const usersRef = collection(db, 'config', 'users', 'list');
     await addDoc(usersRef, {
       ...data,
       createdAt: serverTimestamp()
@@ -105,12 +105,12 @@ export const usersApi = {
   },
 
   update: async (userId: string, data: Partial<User>) => {
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(db, 'config', 'users', 'list', userId);
     await updateDoc(userRef, data);
   },
 
   delete: async (userId: string) => {
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(db, 'config', 'users', 'list', userId);
     await deleteDoc(userRef);
   }
 };
@@ -129,17 +129,3 @@ export const commandsApi = {
     });
   }
 };
-
-// Add wifi command type
-export interface WiFiCommand {
-  action: 'wifi';
-  ssid: string;
-  password: string;
-}
-
-// Add wifi command type
-export interface WiFiCommand {
-  action: 'wifi';
-  ssid: string;
-  password: string;
-}

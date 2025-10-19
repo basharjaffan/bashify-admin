@@ -10,6 +10,7 @@ import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { WiFiSettings } from '../components/WiFiSettings';
 
 const DeviceDetails = () => {
   const { id } = useParams();
@@ -34,7 +35,11 @@ const DeviceDetails = () => {
         <Card>
           <CardContent className="py-16 text-center">
             <p className="text-muted-foreground">Device not found</p>
-          </CardContent>
+                  <WiFiSettings 
+          deviceId={id || ''} 
+          currentSsid={device?.wifiSsid} 
+        />
+      </CardContent>
         </Card>
       </div>
     );
