@@ -43,10 +43,11 @@ const Devices = () => {
     e.preventDefault();
     try {
       const selectedGroup = groups.find(g => g.id === formData.groupId);
+      const hasGroup = formData.groupId && formData.groupId !== 'none';
       await devicesApi.create({
         name: formData.name,
         ipAddress: formData.ipAddress,
-        groupId: formData.groupId || undefined,
+        groupId: hasGroup ? formData.groupId : undefined,
         streamUrl: selectedGroup?.streamUrl || undefined,
         status: 'unconfigured',
         volume: 50
@@ -216,7 +217,7 @@ const Devices = () => {
                         <SelectValue placeholder="Select a group" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No Group</SelectItem>
+                        <SelectItem value="none">No Group</SelectItem>
                         {groups.map((group) => (
                           <SelectItem key={group.id} value={group.id}>
                             {group.name}
