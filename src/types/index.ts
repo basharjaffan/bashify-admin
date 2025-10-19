@@ -4,15 +4,24 @@ export interface Device {
   ipAddress: string;
   deviceId?: string;
   groupId?: string;
+  group?: string;
   status: 'online' | 'offline' | 'playing' | 'paused' | 'unconfigured';
   volume?: number;
   streamUrl?: string;
+  currentUrl?: string;
   lastSeen?: any;
   createdAt?: any;
   uptime?: number;
   connectionType?: 'wifi' | 'ethernet' | 'both';
   wifiSSID?: string;
+  wifiSsid?: string;
   dns?: string;
+  firmwareVersion?: string;
+  wifiConnected?: boolean;
+  ethernetConnected?: boolean;
+  cpuUsage?: number;
+  memoryUsage?: number;
+  diskUsage?: number;
 }
 
 export interface Group {

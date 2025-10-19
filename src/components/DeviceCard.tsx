@@ -1,4 +1,4 @@
-import { Device } from '@/hooks/useDevices';
+import { Device } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Wifi, WifiOff, Music, HardDrive, Cpu, MemoryStick } from 'lucide-react';

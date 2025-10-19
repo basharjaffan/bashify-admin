@@ -1,25 +1,7 @@
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-
-export interface Device {
-  id: string;
-  name: string;
-  ipAddress: string;
-  status: 'online' | 'offline' | 'playing' | 'paused';
-  volume: number;
-  currentUrl?: string;
-  groupId?: string;
-  group?: string;
-  lastSeen: Date;
-  uptime?: number;
-  firmwareVersion?: string;
-  wifiConnected?: boolean;
-  ethernetConnected?: boolean;
-  cpuUsage?: number;
-  memoryUsage?: number;
-  diskUsage?: number;
-}
+import type { Device } from '@/types';
 
 export function useDevices() {
   const [devices, setDevices] = useState<Device[]>([]);

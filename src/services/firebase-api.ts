@@ -117,25 +117,33 @@ export const usersApi = {
 
 // Commands API
 export const commandsApi = {
-  send: async (deviceId: string, action: string, streamUrl?: string, volume?: number) => {
+  send: async (deviceId: string, action: string | { action: string; ssid?: string; password?: string }, streamUrl?: string, volume?: number) => {
     const commandsRef = collection(db, 'config', 'commands', 'list');
-    await addDoc(commandsRef, {
-      deviceId,
-      action,
-      streamUrl: streamUrl || null,
-      volume: volume || null,
-      processed: false,
-      createdAt: serverTimestamp()
-    });
+    
+    // Handle both string actions and object actions (for WiFi commands)
+    if (typeof action === 'object') {
+      await addDoc(commandsRef, {
+        deviceId,
+        action: action.action,
+        ssid: action.ssid || null,
+        password: action.password || null,
+        streamUrl: null,
+        volume: null,
+        processed: false,
+        createdAt: serverTimestamp()
+      });
+    } else {
+      await addDoc(commandsRef, {
+        deviceId,
+        action,
+        streamUrl: streamUrl || null,
+        volume: volume || null,
+        processed: false,
+        createdAt: serverTimestamp()
+      });
+    }
   }
 };
-
-// Add wifi command type
-export interface WiFiCommand {
-  action: 'wifi';
-  ssid: string;
-  password: string;
-}
 
 // Add wifi command type
 export interface WiFiCommand {
