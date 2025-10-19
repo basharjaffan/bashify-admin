@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDevices } from '../hooks/useDevices';
 import { devicesApi, commandsApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -6,13 +7,16 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
+import { Checkbox } from '../components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Radio, Plus, Play, Pause, Trash2, Volume2 } from 'lucide-react';
+import { Radio, Plus, Play, Pause, Trash2, Volume2, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Slider } from '../components/ui/slider';
 
 const Devices = () => {
   const { devices, loading } = useDevices();
+  const navigate = useNavigate();
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -83,6 +87,51 @@ const Devices = () => {
     }
   };
 
+  const toggleDeviceSelection = (deviceId: string) => {
+    setSelectedDevices(prev =>
+      prev.includes(deviceId)
+        ? prev.filter(id => id !== deviceId)
+        : [...prev, deviceId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDevices.length === devices.length) {
+      setSelectedDevices([]);
+    } else {
+      setSelectedDevices(devices.map(d => d.id));
+    }
+  };
+
+  const handleBulkAction = async (action: 'play' | 'pause' | 'delete') => {
+    if (selectedDevices.length === 0) {
+      toast.error('Välj minst en enhet');
+      return;
+    }
+
+    if (action === 'delete') {
+      if (!confirm(`Är du säker på att du vill ta bort ${selectedDevices.length} enheter?`)) return;
+    }
+
+    try {
+      const promises = selectedDevices.map(deviceId => {
+        if (action === 'delete') {
+          return devicesApi.delete(deviceId);
+        } else {
+          const device = devices.find(d => d.id === deviceId);
+          return commandsApi.send(deviceId, action, device?.streamUrl);
+        }
+      });
+
+      await Promise.all(promises);
+      toast.success(`${action === 'delete' ? 'Enheter borttagna' : `Kommando ${action} skickat till ${selectedDevices.length} enheter`}`);
+      setSelectedDevices([]);
+    } catch (error) {
+      console.error('Error with bulk action:', error);
+      toast.error('Kunde inte utföra åtgärd');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -98,6 +147,23 @@ const Devices = () => {
           <h1 className="text-3xl font-bold mb-2">Enheter</h1>
           <p className="text-muted-foreground">Hantera dina Raspberry Pi-enheter</p>
         </div>
+        <div className="flex gap-2">
+          {selectedDevices.length > 0 && (
+            <>
+              <Button variant="outline" onClick={() => handleBulkAction('play')} className="gap-2">
+                <Play className="w-4 h-4" />
+                Spela ({selectedDevices.length})
+              </Button>
+              <Button variant="outline" onClick={() => handleBulkAction('pause')} className="gap-2">
+                <Pause className="w-4 h-4" />
+                Pausa ({selectedDevices.length})
+              </Button>
+              <Button variant="destructive" onClick={() => handleBulkAction('delete')} className="gap-2">
+                <Trash2 className="w-4 h-4" />
+                Ta bort ({selectedDevices.length})
+              </Button>
+            </>
+          )}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -150,14 +216,39 @@ const Devices = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
+      {devices.length > 0 && (
+        <div className="flex items-center gap-2 p-4 bg-card rounded-lg border border-border">
+          <Checkbox
+            checked={selectedDevices.length === devices.length}
+            onCheckedChange={toggleSelectAll}
+            id="select-all"
+          />
+          <Label htmlFor="select-all" className="cursor-pointer">
+            Välj alla ({devices.length} enheter)
+          </Label>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {devices.map((device) => (
-          <Card key={device.id} className="shadow-card">
+          <Card 
+            key={device.id} 
+            className={`shadow-card cursor-pointer transition-all hover:shadow-glow ${
+              selectedDevices.includes(device.id) ? 'ring-2 ring-primary' : ''
+            }`}
+            onClick={() => navigate(`/devices/${device.id}`)}
+          >
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedDevices.includes(device.id)}
+                    onCheckedChange={() => toggleDeviceSelection(device.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                   <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
                     <Radio className="w-5 h-5 text-primary-foreground" />
                   </div>
@@ -197,7 +288,10 @@ const Devices = () => {
                   size="sm"
                   variant="outline"
                   className="flex-1 gap-2"
-                  onClick={() => handlePlayPause(device)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlayPause(device);
+                  }}
                   disabled={device.status === 'offline'}
                 >
                   {device.status === 'playing' ? (
@@ -215,7 +309,10 @@ const Devices = () => {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => handleDelete(device.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(device.id);
+                  }}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
