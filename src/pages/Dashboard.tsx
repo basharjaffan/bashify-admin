@@ -81,7 +81,6 @@ const Dashboard = () => {
   // System health
   const systemHealth = [
     { label: 'Firebase Connection', status: 'Connected', value: null, statusColor: 'text-green-500' },
-    { label: 'MQTT Broker', status: 'Online', value: 'localhost:1883', statusColor: 'text-green-500' },
     { label: 'Active Devices', status: null, value: `${onlineDevices}/${devices.length}`, statusColor: 'text-blue-500' },
     { label: 'Offline Devices', status: null, value: offlineDevices.toString(), statusColor: 'text-muted-foreground' },
   ];
