@@ -222,7 +222,7 @@ const DeviceDetails = () => {
                 <div className="flex items-center gap-2">
                   {getConnectionIcon(device.connectionType)}
                   <span className="text-sm font-semibold">
-                    {device.connectionType || 'Unknown'}
+                    {device.connectionType === 'both' ? 'Både två' : device.connectionType === 'wifi' ? 'WiFi' : device.connectionType === 'ethernet' ? 'Ethernet' : 'Unknown'}
                   </span>
                 </div>
               </div>
@@ -272,10 +272,6 @@ const DeviceDetails = () => {
                   <span className="text-xs truncate max-w-[200px]">{device.streamUrl}</span>
                 </div>
               )}
-              <div className="flex justify-between py-2">
-                <span className="text-muted-foreground">Created</span>
-                <span className="text-sm">{formatLastSeen(device.createdAt)}</span>
-              </div>
             </div>
           </div>
         </CardContent>
