@@ -65,9 +65,13 @@ const Groups = () => {
       setFormData({ name: '', streamUrl: '' });
       setLocalFiles(null);
       setUploadType('url');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating group:', error);
-      toast.error('Failed to create group');
+      if (error?.code === 'storage/unauthorized') {
+        toast.error('Storage permission denied. Please configure Firebase Storage rules.');
+      } else {
+        toast.error('Failed to create group');
+      }
     }
   };
 
