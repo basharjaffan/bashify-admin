@@ -29,9 +29,9 @@ const Layout = () => {
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-card/95 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80">
         <div className="container mx-auto px-6">
-          <div className="flex h-20 items-center justify-between">
-            {/* Logo */}
-            <Link to="/dashboard" className="flex items-center gap-3 group">
+          <div className="flex h-20 items-center justify-center">
+            {/* Logo - Absolute positioned left */}
+            <Link to="/dashboard" className="absolute left-6 flex items-center gap-3 group">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-primary blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
                 <div className="relative w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform">
@@ -75,8 +75,8 @@ const Layout = () => {
               })}
             </nav>
 
-            {/* Status Indicator */}
-            <div className="flex items-center gap-3 px-4 py-2 bg-muted/50 rounded-full border border-border/50">
+            {/* Status Indicator - Absolute positioned right */}
+            <div className="absolute right-6 flex items-center gap-3 px-4 py-2 bg-muted/50 rounded-full border border-border/50">
               <div className="relative">
                 <div className="w-2.5 h-2.5 rounded-full bg-success" />
                 <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-success animate-ping opacity-75" />
