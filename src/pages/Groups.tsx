@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGroups } from '../hooks/useGroups';
-import { groupsApi } from '../services/firebase-api';
+import { groupsApi, storageApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -36,6 +36,8 @@ const Groups = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      toast.info('Creating group...');
+      
       const groupData: any = {
         name: formData.name,
         uploadType
@@ -43,15 +45,22 @@ const Groups = () => {
 
       if (uploadType === 'url') {
         groupData.streamUrl = formData.streamUrl;
+        await groupsApi.create(groupData);
+        toast.success('Group created successfully!');
       } else if (localFiles && localFiles.length > 0) {
-        // In a real implementation, you would upload files to storage
-        // For now, we'll store the file names as a reference
-        groupData.localFiles = Array.from(localFiles).map(f => f.name);
-        toast.info('Local file upload will sync to devices');
+        toast.info('Uploading files...');
+        // Generate temporary ID for file organization
+        const tempGroupId = `group-${Date.now()}`;
+        
+        // Upload files to Firebase Storage
+        const uploadedFiles = await storageApi.uploadGroupFiles(tempGroupId, localFiles);
+        groupData.localFiles = uploadedFiles;
+        
+        // Create group with uploaded file references
+        await groupsApi.create(groupData);
+        toast.success(`Group created with ${uploadedFiles.length} files!`);
       }
 
-      await groupsApi.create(groupData);
-      toast.success('Group created successfully!');
       setOpen(false);
       setFormData({ name: '', streamUrl: '' });
       setLocalFiles(null);
@@ -236,9 +245,14 @@ const Groups = () => {
                     <Upload className="w-3 h-3" />
                     Local Files ({group.localFiles.length})
                   </div>
-                  <div className="text-xs text-muted-foreground max-h-20 overflow-y-auto">
-                    {group.localFiles.slice(0, 3).join(', ')}
-                    {group.localFiles.length > 3 && '...'}
+                  <div className="text-xs text-muted-foreground max-h-20 overflow-y-auto space-y-1">
+                    {group.localFiles.slice(0, 3).map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <span className="truncate">{file.name}</span>
+                        <span className="text-[10px] ml-2">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                      </div>
+                    ))}
+                    {group.localFiles.length > 3 && <div>+{group.localFiles.length - 3} more files</div>}
                   </div>
                 </div>
               ) : group.streamUrl ? (
