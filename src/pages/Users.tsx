@@ -163,15 +163,15 @@ const Users = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort användare</AlertDialogTitle>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort denna användare? Denna åtgärd kan inte ångras.
+              Are you sure you want to delete this user? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => userToDelete && handleDelete(userToDelete)}>
-              Ta bort
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

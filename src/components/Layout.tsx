@@ -12,10 +12,10 @@ import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Enheter', path: '/devices', icon: Radio },
-  { name: 'Grupper', path: '/groups', icon: Layers },
-  { name: 'Användare', path: '/users', icon: Users },
-  { name: 'Inställningar', path: '/settings', icon: Settings },
+  { name: 'Devices', path: '/devices', icon: Radio },
+  { name: 'Groups', path: '/groups', icon: Layers },
+  { name: 'Users', path: '/users', icon: Users },
+  { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
 const Layout = () => {
@@ -44,7 +44,7 @@ const Layout = () => {
                 </h1>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
-                  Musiksystem
+                  Music System
                 </p>
               </div>
             </Link>

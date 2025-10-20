@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 const deviceNameSchema = z.object({
-  name: z.string().trim().min(1, { message: "Namn kan inte vara tomt" }).max(100, { message: "Namn måste vara mindre än 100 tecken" })
+  name: z.string().trim().min(1, { message: "Name cannot be empty" }).max(100, { message: "Name must be less than 100 characters" })
 });
 
 const Devices = () => {
@@ -130,10 +130,10 @@ const Devices = () => {
         commandsApi.send(deviceId, 'volume', undefined, vol),
         commandsApi.send(deviceId, 'set_volume', undefined, vol),
       ]);
-      toast.success(`Volym uppdaterad till ${vol}%`);
+      toast.success(`Volume updated to ${vol}%`);
     } catch (error) {
       console.error('Error updating volume:', error);
-      toast.error('Misslyckades att uppdatera volym');
+      toast.error('Failed to update volume');
     }
   };
 
@@ -257,7 +257,7 @@ const Devices = () => {
     try {
       const validated = deviceNameSchema.parse({ name: editName });
       await devicesApi.update(editingDevice.id, { name: validated.name });
-      toast.success('Enhetsnamn uppdaterat');
+      toast.success('Device name updated');
       setEditOpen(false);
       setEditingDevice(null);
       setEditName('');
@@ -266,7 +266,7 @@ const Devices = () => {
         toast.error(error.errors[0].message);
       } else {
         console.error('Error updating device name:', error);
-        toast.error('Misslyckades att uppdatera enhetsnamn');
+        toast.error('Failed to update device name');
       }
     }
   };
@@ -553,15 +553,15 @@ const Devices = () => {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Redigera enhetsnamn</DialogTitle>
+            <DialogTitle>Edit Device Name</DialogTitle>
             <DialogDescription>
-              Ändra namnet på enheten
+              Change the name of the device
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateName}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Enhetsnamn</Label>
+                <Label htmlFor="edit-name">Device Name</Label>
                 <Input
                   id="edit-name"
                   value={editName}
@@ -571,7 +571,7 @@ const Devices = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit">Spara</Button>
+              <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -580,15 +580,15 @@ const Devices = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort enhet</AlertDialogTitle>
+            <AlertDialogTitle>Delete Device</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort denna enhet? Denna åtgärd kan inte ångras.
+              Are you sure you want to delete this device? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => deviceToDelete && handleDelete(deviceToDelete)}>
-              Ta bort
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -597,15 +597,15 @@ const Devices = () => {
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort enheter</AlertDialogTitle>
+            <AlertDialogTitle>Delete Devices</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort {selectedDevices.size} enhet(er)? Denna åtgärd kan inte ångras.
+              Are you sure you want to delete {selectedDevices.size} device(s)? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmBulkDelete}>
-              Ta bort
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

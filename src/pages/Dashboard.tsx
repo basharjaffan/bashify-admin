@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,6 +9,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [mqttStatus, setMqttStatus] = useState({ status: 'Checking...', url: '' });
   const { devices, loading: devicesLoading } = useDevices();
   const { groups, loading: groupsLoading } = useGroups();
@@ -22,28 +24,32 @@ const Dashboard = () => {
       value: devices.length,
       icon: Radio,
       description: `${onlineDevices} online`,
-      color: 'text-blue-500'
+      color: 'text-blue-500',
+      onClick: () => navigate('/devices')
     },
     {
       title: 'Playing Now',
       value: playingDevices,
       icon: Play,
       description: `${devices.length > 0 ? Math.round((playingDevices / devices.length) * 100) : 0}% of total`,
-      color: 'text-primary'
+      color: 'text-primary',
+      onClick: () => navigate('/devices')
     },
     {
       title: 'Groups',
       value: groups.length,
       icon: Layers,
       description: 'Device groups',
-      color: 'text-purple-500'
+      color: 'text-purple-500',
+      onClick: () => navigate('/groups')
     },
     {
       title: 'Users',
       value: 2,
       icon: Users,
       description: 'System users',
-      color: 'text-green-500'
+      color: 'text-green-500',
+      onClick: () => navigate('/users')
     }
   ];
 
@@ -99,7 +105,7 @@ const Dashboard = () => {
     <div className="space-y-8 max-w-[1600px]">
       <div className="space-y-2">
         <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">Dashboard</h1>
-        <p className="text-muted-foreground text-lg">Översikt över ditt musiksystem</p>
+        <p className="text-muted-foreground text-lg">Overview of your music system</p>
       </div>
 
       {/* Stats Grid */}
@@ -107,7 +113,11 @@ const Dashboard = () => {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="group hover:border-primary/50 transition-colors">
+            <Card 
+              key={stat.title} 
+              className="group hover:border-primary/50 transition-all cursor-pointer"
+              onClick={stat.onClick}
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
