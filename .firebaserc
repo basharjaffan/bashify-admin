@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "bashify-af01b"
-  }
+  },
+  "targets": {
+    "bashify-af01b": {
+      "hosting": {
+        "bashify": [
+          "bashify-af01b"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
