@@ -25,7 +25,7 @@ const Dashboard = () => {
       icon: Radio,
       description: `${onlineDevices} online`,
       color: 'text-blue-500',
-      onClick: () => navigate('/devices')
+      onClick: () => navigate('/devices?filter=all')
     },
     {
       title: 'Playing Now',
@@ -33,23 +33,23 @@ const Dashboard = () => {
       icon: Play,
       description: `${devices.length > 0 ? Math.round((playingDevices / devices.length) * 100) : 0}% of total`,
       color: 'text-primary',
-      onClick: () => navigate('/devices')
+      onClick: () => navigate('/devices?filter=playing')
     },
     {
-      title: 'Groups',
-      value: groups.length,
+      title: 'Online Devices',
+      value: onlineDevices,
       icon: Layers,
-      description: 'Device groups',
-      color: 'text-purple-500',
-      onClick: () => navigate('/groups')
+      description: 'Currently connected',
+      color: 'text-green-500',
+      onClick: () => navigate('/devices?filter=online')
     },
     {
-      title: 'Users',
-      value: 2,
+      title: 'Offline Devices',
+      value: offlineDevices,
       icon: Users,
-      description: 'System users',
-      color: 'text-green-500',
-      onClick: () => navigate('/users')
+      description: 'Not connected',
+      color: 'text-red-500',
+      onClick: () => navigate('/devices?filter=offline')
     }
   ];
 

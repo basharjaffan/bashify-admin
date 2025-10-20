@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
 import { devicesApi, commandsApi } from '../services/firebase-api';
@@ -24,9 +24,11 @@ const deviceNameSchema = z.object({
 
 const Devices = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { devices, loading } = useDevices();
   const { groups } = useGroups();
   const [open, setOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('filter') || 'all');
   const [editOpen, setEditOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
   const [editName, setEditName] = useState('');
@@ -50,6 +52,32 @@ const Devices = () => {
       return next;
     });
   }, [devices]);
+
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter) {
+      setStatusFilter(filter);
+    }
+  }, [searchParams]);
+
+  const filteredDevices = devices.filter(device => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'playing') return device.status === 'playing';
+    if (statusFilter === 'online') return device.status === 'online' || device.status === 'playing';
+    if (statusFilter === 'offline') return device.status === 'offline';
+    if (statusFilter === 'paused') return device.status === 'paused';
+    return true;
+  });
+
+  const handleFilterChange = (filter: string) => {
+    setStatusFilter(filter);
+    if (filter === 'all') {
+      searchParams.delete('filter');
+    } else {
+      searchParams.set('filter', filter);
+    }
+    setSearchParams(searchParams);
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
@@ -160,10 +188,10 @@ const Devices = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedDevices.size === devices.length) {
+    if (selectedDevices.size === filteredDevices.length) {
       setSelectedDevices(new Set());
     } else {
-      setSelectedDevices(new Set(devices.map(d => d.id)));
+      setSelectedDevices(new Set(filteredDevices.map(d => d.id)));
     }
   };
 
@@ -281,7 +309,7 @@ const Devices = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Devices</h1>
           <p className="text-muted-foreground">Manage your connected devices</p>
@@ -389,10 +417,49 @@ const Devices = () => {
         </div>
       </div>
 
-      {devices.length > 0 && (
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        <Button
+          variant={statusFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('all')}
+        >
+          All ({devices.length})
+        </Button>
+        <Button
+          variant={statusFilter === 'playing' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('playing')}
+        >
+          Playing ({devices.filter(d => d.status === 'playing').length})
+        </Button>
+        <Button
+          variant={statusFilter === 'online' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('online')}
+        >
+          Online ({devices.filter(d => d.status === 'online' || d.status === 'playing').length})
+        </Button>
+        <Button
+          variant={statusFilter === 'offline' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('offline')}
+        >
+          Offline ({devices.filter(d => d.status === 'offline').length})
+        </Button>
+        <Button
+          variant={statusFilter === 'paused' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('paused')}
+        >
+          Paused ({devices.filter(d => d.status === 'paused').length})
+        </Button>
+      </div>
+
+      {filteredDevices.length > 0 && (
         <div className="flex items-center gap-2 px-1">
           <Checkbox
-            checked={selectedDevices.size === devices.length}
+            checked={selectedDevices.size === filteredDevices.length && filteredDevices.length > 0}
             onCheckedChange={toggleSelectAll}
           />
           <span className="text-sm text-muted-foreground">
@@ -401,8 +468,15 @@ const Devices = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {devices.map((device) => (
+      {filteredDevices.length === 0 ? (
+        <Card className="p-12">
+          <CardContent className="text-center">
+            <p className="text-muted-foreground">No devices found with the selected filter.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDevices.map((device) => (
           <Card 
             key={device.id} 
             className="shadow-card hover:shadow-glow transition-shadow overflow-hidden"
@@ -532,7 +606,8 @@ const Devices = () => {
             </CardContent>
           </Card>
         ))}
-      </div>
+        </div>
+      )}
 
       {devices.length === 0 && (
         <Card className="shadow-card">
