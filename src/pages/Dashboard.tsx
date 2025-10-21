@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -7,12 +5,32 @@ import { Badge } from '../components/ui/badge';
 import { Radio, Layers, Activity, Users, Play, Circle, CheckCircle2, XCircle, Zap } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart';
+import { useEffect, useState } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const [mqttStatus, setMqttStatus] = useState({ status: 'Checking...', url: '' });
   const { devices, loading: devicesLoading } = useDevices();
   const { groups, loading: groupsLoading } = useGroups();
+  const [mqttStatus, setMqttStatus] = useState({ status: 'Checking...', url: '', statusColor: 'text-yellow-500' });
+
+  useEffect(() => {
+    const systemRef = doc(db, 'config', 'system');
+    const unsubscribe = onSnapshot(systemRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const isOnline = data.mqttBrokerStatus === 'online';
+        setMqttStatus({
+          status: isOnline ? 'Online' : 'Offline',
+          url: data.mqttBrokerUrl || 'unknown',
+          statusColor: isOnline ? 'text-green-500' : 'text-red-500'
+        });
+      } else {
+        setMqttStatus({ status: 'Unknown', url: 'N/A', statusColor: 'text-muted-foreground' });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const onlineDevices = devices.filter(d => d.status === 'online' || d.status === 'playing').length;
   const playingDevices = devices.filter(d => d.status === 'playing').length;
@@ -24,32 +42,28 @@ const Dashboard = () => {
       value: devices.length,
       icon: Radio,
       description: `${onlineDevices} online`,
-      color: 'text-blue-500',
-      onClick: () => navigate('/devices?filter=all')
+      color: 'text-blue-500'
     },
     {
       title: 'Playing Now',
       value: playingDevices,
       icon: Play,
       description: `${devices.length > 0 ? Math.round((playingDevices / devices.length) * 100) : 0}% of total`,
-      color: 'text-primary',
-      onClick: () => navigate('/devices?filter=playing')
+      color: 'text-primary'
     },
     {
-      title: 'Online Devices',
-      value: onlineDevices,
+      title: 'Groups',
+      value: groups.length,
       icon: Layers,
-      description: 'Currently connected',
-      color: 'text-green-500',
-      onClick: () => navigate('/devices?filter=online')
+      description: 'Device groups',
+      color: 'text-purple-500'
     },
     {
-      title: 'Offline Devices',
-      value: offlineDevices,
+      title: 'Users',
+      value: 2,
       icon: Users,
-      description: 'Not connected',
-      color: 'text-red-500',
-      onClick: () => navigate('/devices?filter=offline')
+      description: 'System users',
+      color: 'text-green-500'
     }
   ];
 
@@ -89,6 +103,7 @@ const Dashboard = () => {
   // System health
   const systemHealth = [
     { label: 'Firebase Connection', status: 'Connected', value: null, statusColor: 'text-green-500' },
+    { label: 'MQTT Broker', status: mqttStatus.status, value: mqttStatus.url, statusColor: mqttStatus.statusColor },
     { label: 'Active Devices', status: null, value: `${onlineDevices}/${devices.length}`, statusColor: 'text-blue-500' },
     { label: 'Offline Devices', status: null, value: offlineDevices.toString(), statusColor: 'text-muted-foreground' },
   ];
@@ -102,33 +117,27 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-8 max-w-[1600px]">
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">Dashboard</h1>
-        <p className="text-muted-foreground text-lg">Overview of your music system</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+        <p className="text-muted-foreground">Overview of your music system</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card 
-              key={stat.title} 
-              className="group hover:border-primary/50 transition-all cursor-pointer"
-              onClick={stat.onClick}
-            >
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <Card key={stat.title}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
-                <div className="w-10 h-10 rounded-lg bg-gradient-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
+                <Icon className={`w-5 h-5 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold mb-1">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+                <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
               </CardContent>
             </Card>
           );
@@ -136,7 +145,7 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Device Status Distribution */}
         <Card>
           <CardHeader>
@@ -240,7 +249,7 @@ const Dashboard = () => {
       </Card>
 
       {/* System Health & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* System Health */}
         <Card>
           <CardHeader>

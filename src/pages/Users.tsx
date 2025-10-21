@@ -6,15 +6,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Users as UsersIcon, Plus, Trash2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Users = () => {
   const { users, loading } = useUsers();
   const [open, setOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: ''
@@ -37,11 +34,10 @@ const Users = () => {
   };
 
   const handleDelete = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
     try {
       await usersApi.delete(userId);
       toast.success('User deleted');
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Failed to delete user');
@@ -131,10 +127,7 @@ const Users = () => {
                 size="sm"
                 variant="destructive"
                 className="w-full"
-                onClick={() => {
-                  setUserToDelete(user.id);
-                  setDeleteDialogOpen(true);
-                }}
+                onClick={() => handleDelete(user.id)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
@@ -159,23 +152,6 @@ const Users = () => {
           </CardContent>
         </Card>
       )}
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this user? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => userToDelete && handleDelete(userToDelete)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

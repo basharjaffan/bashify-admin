@@ -9,8 +9,7 @@ import {
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import type { Device, Group, User } from '../types';
 
 // Devices API
@@ -143,34 +142,6 @@ export const commandsApi = {
         createdAt: serverTimestamp()
       });
     }
-  }
-};
-
-// Storage API for file uploads
-export const storageApi = {
-  uploadFile: async (file: File, path: string): Promise<string> => {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    return downloadURL;
-  },
-
-  uploadGroupFiles: async (groupId: string, files: FileList): Promise<Array<{ name: string; url: string; size: number }>> => {
-    const uploadPromises = Array.from(files).map(async (file) => {
-      const path = `groups/${groupId}/${file.name}`;
-      const url = await storageApi.uploadFile(file, path);
-      return {
-        name: file.name,
-        url,
-        size: file.size
-      };
-    });
-    return Promise.all(uploadPromises);
-  },
-
-  deleteFile: async (path: string) => {
-    const storageRef = ref(storage, path);
-    await deleteObject(storageRef);
   }
 };
 
