@@ -32,7 +32,7 @@ export interface Group {
   streamUrl?: string;
   deviceCount?: number;
   createdAt?: any;
-  localFiles?: string[];
+  localFiles?: Array<{ name: string; url: string; size: number }>;
   uploadType?: 'url' | 'local';
 }
 

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGroups } from '../hooks/useGroups';
-import { groupsApi } from '../services/firebase-api';
+import { groupsApi, storageApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Layers, Plus, Trash2, Radio, Link as LinkIcon, Upload, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +24,8 @@ const Groups = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
   const [editName, setEditName] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
   const [uploadType, setUploadType] = useState<'url' | 'local'>('url');
   const [formData, setFormData] = useState({
     name: '',
@@ -33,6 +36,8 @@ const Groups = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      toast.info('Creating group...');
+      
       const groupData: any = {
         name: formData.name,
         uploadType
@@ -40,30 +45,42 @@ const Groups = () => {
 
       if (uploadType === 'url') {
         groupData.streamUrl = formData.streamUrl;
+        await groupsApi.create(groupData);
+        toast.success('Group created successfully!');
       } else if (localFiles && localFiles.length > 0) {
-        // In a real implementation, you would upload files to storage
-        // For now, we'll store the file names as a reference
-        groupData.localFiles = Array.from(localFiles).map(f => f.name);
-        toast.info('Local file upload will sync to devices');
+        toast.info('Uploading files...');
+        // Generate temporary ID for file organization
+        const tempGroupId = `group-${Date.now()}`;
+        
+        // Upload files to Firebase Storage
+        const uploadedFiles = await storageApi.uploadGroupFiles(tempGroupId, localFiles);
+        groupData.localFiles = uploadedFiles;
+        
+        // Create group with uploaded file references
+        await groupsApi.create(groupData);
+        toast.success(`Group created with ${uploadedFiles.length} files!`);
       }
 
-      await groupsApi.create(groupData);
-      toast.success('Group created successfully!');
       setOpen(false);
       setFormData({ name: '', streamUrl: '' });
       setLocalFiles(null);
       setUploadType('url');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating group:', error);
-      toast.error('Failed to create group');
+      if (error?.code === 'storage/unauthorized') {
+        toast.error('Storage permission denied. Please configure Firebase Storage rules.');
+      } else {
+        toast.error('Failed to create group');
+      }
     }
   };
 
   const handleDelete = async (groupId: string) => {
-    if (!confirm('Are you sure you want to delete this group?')) return;
     try {
       await groupsApi.delete(groupId);
       toast.success('Group deleted');
+      setDeleteDialogOpen(false);
+      setGroupToDelete(null);
     } catch (error) {
       console.error('Error deleting group:', error);
       toast.error('Failed to delete group');
@@ -232,9 +249,14 @@ const Groups = () => {
                     <Upload className="w-3 h-3" />
                     Local Files ({group.localFiles.length})
                   </div>
-                  <div className="text-xs text-muted-foreground max-h-20 overflow-y-auto">
-                    {group.localFiles.slice(0, 3).join(', ')}
-                    {group.localFiles.length > 3 && '...'}
+                  <div className="text-xs text-muted-foreground max-h-20 overflow-y-auto space-y-1">
+                    {group.localFiles.slice(0, 3).map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <span className="truncate">{file.name}</span>
+                        <span className="text-[10px] ml-2">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                      </div>
+                    ))}
+                    {group.localFiles.length > 3 && <div>+{group.localFiles.length - 3} more files</div>}
                   </div>
                 </div>
               ) : group.streamUrl ? (
@@ -257,7 +279,8 @@ const Groups = () => {
                 className="w-full"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(group.id);
+                  setGroupToDelete(group.id);
+                  setDeleteDialogOpen(true);
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -310,6 +333,23 @@ const Groups = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort grupp</AlertDialogTitle>
+            <AlertDialogDescription>
+              Är du säker på att du vill ta bort denna grupp? Denna åtgärd kan inte ångras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={() => groupToDelete && handleDelete(groupToDelete)}>
+              Ta bort
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

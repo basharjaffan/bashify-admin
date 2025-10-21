@@ -10,12 +10,21 @@ interface DeviceCardProps {
 export function DeviceCard({ device }: DeviceCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'online': return 'bg-green-500';
-      case 'playing': return 'bg-blue-500 animate-pulse';
-      case 'paused': return 'bg-yellow-500';
-      case 'offline': return 'bg-gray-500';
-      default: return 'bg-gray-500';
+      case 'online': return 'bg-success';
+      case 'playing': return 'bg-primary animate-pulse';
+      case 'paused': return 'bg-warning';
+      case 'offline': return 'bg-destructive';
+      default: return 'bg-muted';
     }
+  };
+
+  const getStatusIcon = (status: string) => {
+    const isOnline = status === 'online' || status === 'playing';
+    return isOnline ? (
+      <Wifi className="h-5 w-5 text-success" />
+    ) : (
+      <WifiOff className="h-5 w-5 text-destructive" />
+    );
   };
 
   const formatUptime = (seconds?: number) => {
@@ -31,14 +40,19 @@ export function DeviceCard({ device }: DeviceCardProps) {
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{device.name}</CardTitle>
-          <Badge className={getStatusColor(device.status)}>
-            {device.status}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            {getStatusIcon(device.status)}
+            <div>
+              <CardTitle className="text-lg">{device.name}</CardTitle>
+              <div className="text-sm text-muted-foreground">
+                {device.ipAddress} • {device.id.substring(0, 8)}
+              </div>
+            </div>
+          </div>
+          <Badge className={`${getStatusColor(device.status)} text-white font-semibold`}>
+            {device.status.toUpperCase()}
           </Badge>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {device.ipAddress} • {device.id.substring(0, 8)}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
 import { devicesApi, commandsApi } from '../services/firebase-api';
@@ -10,6 +10,7 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
@@ -18,18 +19,23 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 const deviceNameSchema = z.object({
-  name: z.string().trim().min(1, { message: "Namn kan inte vara tomt" }).max(100, { message: "Namn måste vara mindre än 100 tecken" })
+  name: z.string().trim().min(1, { message: "Name cannot be empty" }).max(100, { message: "Name must be less than 100 characters" })
 });
 
 const Devices = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { devices, loading } = useDevices();
   const { groups } = useGroups();
   const [open, setOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('filter') || 'all');
   const [editOpen, setEditOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
   const [editName, setEditName] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     ipAddress: '',
@@ -46,6 +52,32 @@ const Devices = () => {
       return next;
     });
   }, [devices]);
+
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter) {
+      setStatusFilter(filter);
+    }
+  }, [searchParams]);
+
+  const filteredDevices = devices.filter(device => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'playing') return device.status === 'playing';
+    if (statusFilter === 'online') return device.status === 'online' || device.status === 'playing';
+    if (statusFilter === 'offline') return device.status === 'offline';
+    if (statusFilter === 'paused') return device.status === 'paused';
+    return true;
+  });
+
+  const handleFilterChange = (filter: string) => {
+    setStatusFilter(filter);
+    if (filter === 'all') {
+      searchParams.delete('filter');
+    } else {
+      searchParams.set('filter', filter);
+    }
+    setSearchParams(searchParams);
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
@@ -126,18 +158,19 @@ const Devices = () => {
         commandsApi.send(deviceId, 'volume', undefined, vol),
         commandsApi.send(deviceId, 'set_volume', undefined, vol),
       ]);
-      toast.success(`Volym uppdaterad till ${vol}%`);
+      toast.success(`Volume updated to ${vol}%`);
     } catch (error) {
       console.error('Error updating volume:', error);
-      toast.error('Misslyckades att uppdatera volym');
+      toast.error('Failed to update volume');
     }
   };
 
   const handleDelete = async (deviceId: string) => {
-    if (!confirm('Are you sure you want to delete this device?')) return;
     try {
       await devicesApi.delete(deviceId);
       toast.success('Device deleted');
+      setDeleteDialogOpen(false);
+      setDeviceToDelete(null);
     } catch (error) {
       console.error('Error deleting device:', error);
       toast.error('Failed to delete device');
@@ -155,10 +188,10 @@ const Devices = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedDevices.size === devices.length) {
+    if (selectedDevices.size === filteredDevices.length) {
       setSelectedDevices(new Set());
     } else {
-      setSelectedDevices(new Set(devices.map(d => d.id)));
+      setSelectedDevices(new Set(filteredDevices.map(d => d.id)));
     }
   };
 
@@ -169,17 +202,14 @@ const Devices = () => {
     }
 
     if (action === 'delete') {
-      if (!confirm(`Delete ${selectedDevices.size} device(s)?`)) return;
+      setBulkDeleteDialogOpen(true);
+      return;
     }
 
     try {
       const promises = Array.from(selectedDevices).map(deviceId => {
         const device = devices.find(d => d.id === deviceId);
-        if (action === 'delete') {
-          return devicesApi.delete(deviceId);
-        } else {
-          return commandsApi.send(deviceId, action, device?.streamUrl);
-        }
+        return commandsApi.send(deviceId, action, device?.streamUrl);
       });
       
       await Promise.all(promises);
@@ -191,6 +221,21 @@ const Devices = () => {
     }
   };
 
+  const confirmBulkDelete = async () => {
+    try {
+      const promises = Array.from(selectedDevices).map(deviceId =>
+        devicesApi.delete(deviceId)
+      );
+      await Promise.all(promises);
+      toast.success(`${selectedDevices.size} device(s) deleted`);
+      setSelectedDevices(new Set());
+      setBulkDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error in bulk delete:', error);
+      toast.error('Failed to complete bulk delete');
+    }
+  };
+
   const handleDeviceGroupChange = async (deviceId: string, newGroupId: string) => {
     try {
       const hasGroup = newGroupId && newGroupId !== 'none';
@@ -199,6 +244,12 @@ const Devices = () => {
         groupId: hasGroup ? newGroupId : undefined,
         streamUrl: hasGroup ? selectedGroup?.streamUrl : undefined
       });
+      
+      // Send play command to restart music with new group
+      if (hasGroup && selectedGroup?.streamUrl) {
+        await commandsApi.send(deviceId, 'play', selectedGroup.streamUrl);
+      }
+      
       toast.success('Group updated');
     } catch (error) {
       console.error('Error updating device group:', error);
@@ -221,6 +272,15 @@ const Devices = () => {
         })
       );
       await Promise.all(updates);
+      
+      // Send play commands to all devices
+      if (hasGroup && selectedGroup?.streamUrl) {
+        const playCommands = Array.from(selectedDevices).map(deviceId =>
+          commandsApi.send(deviceId, 'play', selectedGroup.streamUrl)
+        );
+        await Promise.all(playCommands);
+      }
+      
       toast.success('Group assignment completed');
     } catch (error) {
       console.error('Error assigning group in bulk:', error);
@@ -240,7 +300,7 @@ const Devices = () => {
     try {
       const validated = deviceNameSchema.parse({ name: editName });
       await devicesApi.update(editingDevice.id, { name: validated.name });
-      toast.success('Enhetsnamn uppdaterat');
+      toast.success('Device name updated');
       setEditOpen(false);
       setEditingDevice(null);
       setEditName('');
@@ -249,7 +309,7 @@ const Devices = () => {
         toast.error(error.errors[0].message);
       } else {
         console.error('Error updating device name:', error);
-        toast.error('Misslyckades att uppdatera enhetsnamn');
+        toast.error('Failed to update device name');
       }
     }
   };
@@ -264,7 +324,7 @@ const Devices = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Devices</h1>
           <p className="text-muted-foreground">Manage your connected devices</p>
@@ -372,10 +432,49 @@ const Devices = () => {
         </div>
       </div>
 
-      {devices.length > 0 && (
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        <Button
+          variant={statusFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('all')}
+        >
+          All ({devices.length})
+        </Button>
+        <Button
+          variant={statusFilter === 'playing' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('playing')}
+        >
+          Playing ({devices.filter(d => d.status === 'playing').length})
+        </Button>
+        <Button
+          variant={statusFilter === 'online' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('online')}
+        >
+          Online ({devices.filter(d => d.status === 'online' || d.status === 'playing').length})
+        </Button>
+        <Button
+          variant={statusFilter === 'offline' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('offline')}
+        >
+          Offline ({devices.filter(d => d.status === 'offline').length})
+        </Button>
+        <Button
+          variant={statusFilter === 'paused' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('paused')}
+        >
+          Paused ({devices.filter(d => d.status === 'paused').length})
+        </Button>
+      </div>
+
+      {filteredDevices.length > 0 && (
         <div className="flex items-center gap-2 px-1">
           <Checkbox
-            checked={selectedDevices.size === devices.length}
+            checked={selectedDevices.size === filteredDevices.length && filteredDevices.length > 0}
             onCheckedChange={toggleSelectAll}
           />
           <span className="text-sm text-muted-foreground">
@@ -384,8 +483,15 @@ const Devices = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {devices.map((device) => (
+      {filteredDevices.length === 0 ? (
+        <Card className="p-12">
+          <CardContent className="text-center">
+            <p className="text-muted-foreground">No devices found with the selected filter.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDevices.map((device) => (
           <Card 
             key={device.id} 
             className="shadow-card hover:shadow-glow transition-shadow overflow-hidden"
@@ -505,7 +611,8 @@ const Devices = () => {
                   variant="destructive"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(device.id);
+                    setDeviceToDelete(device.id);
+                    setDeleteDialogOpen(true);
                   }}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -514,7 +621,8 @@ const Devices = () => {
             </CardContent>
           </Card>
         ))}
-      </div>
+        </div>
+      )}
 
       {devices.length === 0 && (
         <Card className="shadow-card">
@@ -535,15 +643,15 @@ const Devices = () => {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Redigera enhetsnamn</DialogTitle>
+            <DialogTitle>Edit Device Name</DialogTitle>
             <DialogDescription>
-              Ändra namnet på enheten
+              Change the name of the device
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateName}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Enhetsnamn</Label>
+                <Label htmlFor="edit-name">Device Name</Label>
                 <Input
                   id="edit-name"
                   value={editName}
@@ -553,11 +661,45 @@ const Devices = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit">Spara</Button>
+              <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Device</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this device? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deviceToDelete && handleDelete(deviceToDelete)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Devices</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedDevices.size} device(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
