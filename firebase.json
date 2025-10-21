@@ -1,6 +1,5 @@
 {
   "hosting": {
-    "site": "bashify-af01b",
     "public": "dist",
     "ignore": [
       "firebase.json",
