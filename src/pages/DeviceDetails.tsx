@@ -1,8 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useDevices } from '../hooks/useDevices';
+import { useGroups } from '../hooks/useGroups';
 import { devicesApi, commandsApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { DeviceCard } from '../components/DeviceCard';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -20,6 +22,7 @@ const DeviceDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { devices } = useDevices();
+  const { groups } = useGroups();
   const device = devices.find(d => d.id === id);
   const [wifiSSID, setWifiSSID] = useState(device?.wifiSSID || '');
   const [wifiPassword, setWifiPassword] = useState('');
@@ -184,6 +187,12 @@ const DeviceDetails = () => {
         {getStatusBadge(device.status)}
       </div>
 
+      <DeviceCard
+        device={device}
+        groupName={groups.find(g => g.id === device.groupId)?.name}
+        onPlayPause={() => handlePlayPause()}
+      />
+
       {/* Controls Section */}
       <Card className="shadow-card">
         <CardHeader>
@@ -191,26 +200,6 @@ const DeviceDetails = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
-            {device.status === 'playing' ? (
-              <Button
-                size="lg"
-                onClick={handlePlayPause}
-                className="gap-2"
-              >
-                <Pause className="w-5 h-5" />
-                Pause
-              </Button>
-            ) : (
-              <Button
-                size="lg"
-                onClick={handlePlayPause}
-                className="gap-2"
-              >
-                <Play className="w-5 h-5" />
-                Play
-              </Button>
-            )}
-
             <Button 
               onClick={() => setShowUpdateDialog(true)} 
               variant="outline"
@@ -294,8 +283,8 @@ const DeviceDetails = () => {
               )}
               {device.groupId && (
                 <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Group ID</span>
-                  <code className="text-xs">{device.groupId}</code>
+                  <span className="text-muted-foreground">Group</span>
+                  <span className="text-sm">{groups.find(g => g.id === device.groupId)?.name || device.groupId}</span>
                 </div>
               )}
               {device.wifiSSID && (
