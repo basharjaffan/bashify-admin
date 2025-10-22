@@ -51,6 +51,8 @@ All colors MUST be HSL.
     --shadow-glow: 0 8px 32px hsl(199 89% 48% / 0.3);
     --shadow-card: 0 4px 16px hsl(0 0% 0% / 0.5);
     --shadow-elegant: 0 20px 40px -10px hsl(0 0% 0% / 0.6);
+    --shadow-button: 0 4px 12px hsl(0 0% 0% / 0.4);
+    --shadow-button-hover: 0 6px 20px hsl(199 89% 48% / 0.4);
 
     --sidebar-background: 220 20% 8%;
     --sidebar-foreground: 210 20% 98%;

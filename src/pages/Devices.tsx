@@ -12,9 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Badge } from '../components/ui/badge';
-import { Slider } from '../components/ui/slider';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Checkbox } from '../components/ui/checkbox';
-import { Radio, Plus, Play, Pause, Trash2, Volume2, MoreVertical, Pencil } from 'lucide-react';
+import { Radio, Plus, Play, Pause, Trash2, MoreVertical, Pencil, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -316,6 +316,26 @@ const Devices = () => {
     }
   };
 
+  const formatUptime = (uptime?: number) => {
+    if (!uptime) return 'N/A';
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  const formatLastSeen = (lastSeen: any) => {
+    if (!lastSeen) return 'Never';
+    const date = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
+    return new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+      hour12: false
+    }).format(date);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -473,157 +493,142 @@ const Devices = () => {
         </Button>
       </div>
 
-      {filteredDevices.length > 0 && (
-        <div className="flex items-center gap-2 px-1">
-          <Checkbox
-            checked={selectedDevices.size === filteredDevices.length && filteredDevices.length > 0}
-            onCheckedChange={toggleSelectAll}
-          />
-          <span className="text-sm text-muted-foreground">
-            Select All ({selectedDevices.size} selected)
-          </span>
-        </div>
-      )}
-
       {filteredDevices.length === 0 ? (
-        <Card className="p-12">
-          <CardContent className="text-center">
+        <Card className="shadow-card">
+          <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">No devices found with the selected filter.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDevices.map((device) => (
-          <Card 
-            key={device.id} 
-            className="shadow-card hover:shadow-glow transition-shadow overflow-hidden"
-          >
-            <CardHeader>
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  checked={selectedDevices.has(device.id)}
-                  onCheckedChange={() => toggleDeviceSelection(device.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <Card className="shadow-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedDevices.size === filteredDevices.length && filteredDevices.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>Device Name</TableHead>
+                <TableHead>IP Address</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Uptime</TableHead>
+                <TableHead>Last Seen</TableHead>
+                <TableHead>CPU</TableHead>
+                <TableHead>RAM</TableHead>
+                <TableHead>Disk</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDevices.map((device) => (
+                <TableRow 
+                  key={device.id}
+                  className="cursor-pointer hover:bg-accent/50"
+                  onClick={() => navigate(`/devices/${device.id}`)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedDevices.has(device.id)}
+                      onCheckedChange={() => toggleDeviceSelection(device.id)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <CardTitle 
-                        className="text-lg cursor-pointer hover:text-primary transition-colors"
-                        onClick={() => navigate(`/devices/${device.id}`)}
-                      >
-                        {device.name}
-                      </CardTitle>
+                      {device.name}
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-6 w-6 p-0"
-                        onClick={(e) => handleEditClick(e, device)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(e, device);
+                        }}
                       >
                         <Pencil className="w-3 h-3" />
                       </Button>
                     </div>
-                    {getStatusBadge(device.status)}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Radio className="w-3 h-3" />
-                    {device.ipAddress}
-                  </div>
-                  {device.wifiSSID && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      WiFi: {device.wifiSSID}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Radio className="w-3 h-3" />
+                      {device.ipAddress}
                     </div>
-                  )}
-                  {device.groupId && (() => {
-                    const group = groups.find(g => g.id === device.groupId);
-                    return group ? (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {group.name}
-                        </Badge>
-                      </div>
-                    ) : null;
-                  })()}
-                  <div className="mt-2">
-                    <Select value={device.groupId || 'none'} onValueChange={(value) => handleDeviceGroupChange(device.id, value)}>
-                      <SelectTrigger className="h-8 w-[180px]">
-                        <SelectValue placeholder="Assign group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Group</SelectItem>
-                        {groups.map((group) => (
-                          <SelectItem key={group.id} value={group.id}>
-                            {group.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Volume2 className="w-3 h-3" />
-                    Volume
-                  </span>
-                  <span>{(localVolumes[device.id] ?? device.volume ?? 50)}%</span>
-                </div>
-                <Slider
-                  value={[localVolumes[device.id] ?? device.volume ?? 50]}
-                  onValueChange={(value) => setLocalVolumes((prev) => ({ ...prev, [device.id]: value[0] }))}
-                  onValueCommit={(value) => handleVolumeChange(device.id, value)}
-                  max={100}
-                  step={1}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={device.status === 'playing'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePlay(device);
-                  }}
-                >
-                  <Play className="w-4 h-4 mr-1" />
-                  Play
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={device.status !== 'playing'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePause(device);
-                  }}
-                >
-                  <Pause className="w-4 h-4 mr-1" />
-                  Pause
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeviceToDelete(device.id);
-                    setDeleteDialogOpen(true);
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        </div>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(device.status)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatUptime(device.uptime)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatLastSeen(device.lastSeen)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Activity className="w-3 h-3 text-muted-foreground" />
+                      <span className={device.cpuUsage && device.cpuUsage > 80 ? 'text-warning' : ''}>
+                        {device.cpuUsage ? `${device.cpuUsage}%` : 'N/A'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Activity className="w-3 h-3 text-muted-foreground" />
+                      <span className={device.memoryUsage && device.memoryUsage > 80 ? 'text-warning' : ''}>
+                        {device.memoryUsage ? `${device.memoryUsage}%` : 'N/A'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Activity className="w-3 h-3 text-muted-foreground" />
+                      <span className={device.diskUsage && device.diskUsage > 80 ? 'text-warning' : ''}>
+                        {device.diskUsage ? `${device.diskUsage}%` : 'N/A'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={device.status === 'playing'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlay(device);
+                        }}
+                      >
+                        <Play className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={device.status !== 'playing'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePause(device);
+                        }}
+                      >
+                        <Pause className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeviceToDelete(device.id);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       {devices.length === 0 && (
