@@ -41,5 +41,6 @@ export interface User {
   name: string;
   email: string;
   deviceId?: string;
+  isAdmin?: boolean;
   createdAt?: any;
 }

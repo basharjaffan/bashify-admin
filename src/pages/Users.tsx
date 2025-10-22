@@ -5,19 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
-import { Users as UsersIcon, Plus, Trash2, Mail } from 'lucide-react';
+import { Users as UsersIcon, Plus, Trash2, Mail, Edit, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import type { User } from '../types';
 
 const Users = () => {
   const { users, loading } = useUsers();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    email: ''
+    email: '',
+    isAdmin: false
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,15 +30,46 @@ const Users = () => {
     try {
       await usersApi.create({
         name: formData.name,
-        email: formData.email
+        email: formData.email,
+        isAdmin: formData.isAdmin
       });
       toast.success('User added successfully!');
       setOpen(false);
-      setFormData({ name: '', email: '' });
+      setFormData({ name: '', email: '', isAdmin: false });
     } catch (error) {
       console.error('Error creating user:', error);
       toast.error('Failed to add user');
     }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    
+    try {
+      await usersApi.update(editingUser.id, {
+        name: formData.name,
+        email: formData.email,
+        isAdmin: formData.isAdmin
+      });
+      toast.success('User updated successfully!');
+      setEditOpen(false);
+      setEditingUser(null);
+      setFormData({ name: '', email: '', isAdmin: false });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update user');
+    }
+  };
+
+  const openEditDialog = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin || false
+    });
+    setEditOpen(true);
   };
 
   const handleDelete = async (userId: string) => {
@@ -100,6 +136,19 @@ const Users = () => {
                     required
                   />
                 </div>
+                <div className="flex items-center justify-between space-x-2">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="admin">Admin Access</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow user to login to admin portal
+                    </p>
+                  </div>
+                  <Switch
+                    id="admin"
+                    checked={formData.isAdmin}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isAdmin: checked })}
+                  />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Add User</Button>
@@ -111,14 +160,19 @@ const Users = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {users.map((user) => (
-          <Card key={user.id} className="shadow-card">
+          <Card key={user.id} className="shadow-card cursor-pointer" onClick={() => openEditDialog(user)}>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
                   <UsersIcon className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-lg">{user.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg">{user.name}</CardTitle>
+                    {user.isAdmin && (
+                      <Shield className="w-4 h-4 text-primary" />
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                     <Mail className="w-3 h-3" />
                     {user.email}
@@ -127,18 +181,31 @@ const Users = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="w-full"
-                onClick={() => {
-                  setUserToDelete(user.id);
-                  setDeleteDialogOpen(true);
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditDialog(user);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUserToDelete(user.id);
+                    setDeleteDialogOpen(true);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -159,6 +226,58 @@ const Users = () => {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user information and permissions
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  placeholder="john@example.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="edit-admin">Admin Access</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow user to login to admin portal
+                  </p>
+                </div>
+                <Switch
+                  id="edit-admin"
+                  checked={formData.isAdmin}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isAdmin: checked })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

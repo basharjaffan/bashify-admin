@@ -156,7 +156,8 @@ const DeviceDetails = () => {
     const date = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
     return new Intl.DateTimeFormat('en-US', {
       dateStyle: 'medium',
-      timeStyle: 'short'
+      timeStyle: 'short',
+      hour12: false
     }).format(date);
   };
 
