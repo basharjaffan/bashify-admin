@@ -248,7 +248,7 @@ const Devices = () => {
       // Stop current music and start new group music
       if (hasGroup && selectedGroup?.streamUrl) {
         await commandsApi.send(deviceId, 'stop');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         await commandsApi.send(deviceId, 'play', selectedGroup.streamUrl);
       }
       
