@@ -1,10 +1,26 @@
 import { useDevices } from '@/hooks/useDevices';
+import { useGroups } from '@/hooks/useGroups';
 import { DeviceCard } from '@/components/DeviceCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw, Radio } from 'lucide-react';
+import { commandsApi } from '@/services/firebase-api';
+import { toast } from 'sonner';
+import type { Device } from '@/types';
 
 export default function DevicesDashboard() {
   const { devices, loading, error } = useDevices();
+  const { groups } = useGroups();
+
+  const handlePlayPause = async (device: Device) => {
+    const action = device.status === 'playing' ? 'pause' : 'play';
+    try {
+      await commandsApi.send(device.id, action, device.streamUrl);
+      toast.success(`Device ${action === 'play' ? 'playing' : 'paused'}`);
+    } catch (error) {
+      console.error('Error controlling device:', error);
+      toast.error('Failed to control device');
+    }
+  };
 
   if (loading) {
     return (
@@ -49,9 +65,17 @@ export default function DevicesDashboard() {
 
         {/* Devices Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {devices.map((device) => (
-            <DeviceCard key={device.id} device={device} />
-          ))}
+          {devices.map((device) => {
+            const group = groups.find(g => g.id === device.groupId);
+            return (
+              <DeviceCard 
+                key={device.id} 
+                device={device}
+                groupName={group?.name}
+                onPlayPause={handlePlayPause}
+              />
+            );
+          })}
         </div>
 
         {devices.length === 0 && (
