@@ -19,6 +19,7 @@ const Users = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -71,6 +72,11 @@ const Users = () => {
     });
     setEditOpen(true);
   };
+
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleDelete = async (userId: string) => {
     try {
@@ -158,8 +164,18 @@ const Users = () => {
         </Dialog>
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-md">
+        <Input
+          placeholder="Search users by name or email..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full"
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {users.map((user) => (
+        {filteredUsers.map((user) => (
           <Card key={user.id} className="shadow-card cursor-pointer" onClick={() => openEditDialog(user)}>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -210,6 +226,18 @@ const Users = () => {
           </Card>
         ))}
       </div>
+
+      {filteredUsers.length === 0 && searchQuery && (
+        <Card className="shadow-card">
+          <CardContent className="py-16 text-center">
+            <UsersIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">No users found</h3>
+            <p className="text-muted-foreground mb-6">
+              No users match your search "{searchQuery}"
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {users.length === 0 && (
         <Card className="shadow-card">
