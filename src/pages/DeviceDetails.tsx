@@ -5,17 +5,14 @@ import { useGroups } from '../hooks/useGroups';
 import { Device } from '../types';
 import { devicesApi, commandsApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { DeviceCard } from '../components/DeviceCard';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
-import { Progress } from '../components/ui/progress';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
-import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings, Volume2, Power } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import { WiFiSettings } from '../components/WiFiSettings';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -31,61 +28,35 @@ const DeviceDetails = () => {
   const [gateway, setGateway] = useState('');
   const [dns, setDns] = useState(device?.dns || '');
   const [altDns, setAltDns] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState(0);
-  const [updateStatus, setUpdateStatus] = useState('');
-  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState(device?.groupId || '');
 
   useEffect(() => {
-    if (!device) return;
-    
-    const deviceRef = doc(db, 'devices', device.id);
-    const unsubscribe = onSnapshot(deviceRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.updateProgress !== undefined) {
-          setUpdateProgress(data.updateProgress);
-          setIsUpdating(data.updateProgress > 0 && data.updateProgress < 100);
-        }
-        if (data.updateStatus) {
-          setUpdateStatus(data.updateStatus);
-        }
-      }
-    });
-    
-    return () => unsubscribe();
-  }, [device?.id]);
+    if (device) {
+      setSelectedGroupId(device.groupId || '');
+    }
+  }, [device?.groupId]);
 
   if (!device) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => navigate('/devices')} className="gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Devices
-        </Button>
         <Card>
           <CardContent className="py-16 text-center">
             <p className="text-muted-foreground">Device not found</p>
-                  <WiFiSettings 
-          deviceId={id || ''} 
-          currentSsid={device?.wifiSsid} 
-        />
-      </CardContent>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      online: { variant: 'default', label: 'Online' },
-      playing: { variant: 'default', label: 'Playing' },
-      offline: { variant: 'destructive', label: 'Offline' },
-      paused: { variant: 'secondary', label: 'Paused' },
-      unconfigured: { variant: 'outline', label: 'Unconfigured' }
-    };
-    const config = variants[status] || variants.offline;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+  const getConnectionStatus = () => {
+    if (device.status === 'offline') return 'Offline';
+    return 'Online';
+  };
+
+  const getPlaybackStatus = () => {
+    if (device.status === 'playing') return 'Playing';
+    if (device.status === 'paused') return 'Paused';
+    return 'Not Playing';
   };
 
   const handlePlayPause = async () => {
@@ -109,30 +80,27 @@ const DeviceDetails = () => {
     }
   };
 
-  const handleCardVolumeChange = async (device: Device, volume: number) => {
+  const handleGroupChange = async (groupId: string) => {
     try {
-      await devicesApi.update(device.id, { volume });
-      await commandsApi.send(device.id, 'volume', undefined, volume);
-      toast.success(`Volume set to ${volume}%`);
+      await devicesApi.update(device.id, { groupId });
+      setSelectedGroupId(groupId);
+      toast.success('Group updated');
     } catch (error) {
-      console.error('Error updating volume:', error);
-      toast.error('Failed to update volume');
+      console.error('Error updating group:', error);
+      toast.error('Failed to update group');
     }
   };
 
-  const handleFullUpdate = async () => {
-    setIsUpdating(true);
-    setShowUpdateDialog(false);
+  const handleUpdateSystem = async () => {
     try {
       await commandsApi.send(device.id, 'full_update');
-      toast.success('Full system update initiated. Device will restart.');
+      toast.success('System update initiated');
     } catch (error) {
-      console.error('Error starting full update:', error);
-      toast.error('Failed to start update');
-    } finally {
-      setIsUpdating(false);
+      console.error('Error updating system:', error);
+      toast.error('Failed to update system');
     }
   };
+
   const handleRestart = async () => {
     try {
       await commandsApi.send(device.id, 'reboot');
@@ -144,18 +112,31 @@ const DeviceDetails = () => {
   };
 
 
-  const handleNetworkConfig = async () => {
+  const handleWifiConfig = async () => {
+    try {
+      if (wifiSSID && wifiPassword) {
+        await commandsApi.send(device.id, 'configure_wifi', JSON.stringify({
+          ssid: wifiSSID,
+          password: wifiPassword
+        }));
+        toast.success('WiFi configuration applied');
+        setWifiPassword('');
+      }
+    } catch (error) {
+      console.error('Error updating WiFi config:', error);
+      toast.error('Failed to update WiFi configuration');
+    }
+  };
+
+  const handleIpConfig = async () => {
     try {
       await devicesApi.update(device.id, { 
-        wifiSSID, 
         ipAddress,
         dns
       });
       
-      if (wifiSSID && wifiPassword) {
-        await commandsApi.send(device.id, 'configure_wifi', JSON.stringify({
-          ssid: wifiSSID,
-          password: wifiPassword,
+      if (ipAddress && gateway) {
+        await commandsApi.send(device.id, 'configure_ip', JSON.stringify({
           ipAddress,
           gateway,
           dns,
@@ -163,11 +144,10 @@ const DeviceDetails = () => {
         }));
       }
       
-      toast.success('Network configuration updated');
-      setWifiPassword('');
+      toast.success('IP configuration updated');
     } catch (error) {
-      console.error('Error updating network config:', error);
-      toast.error('Failed to update network configuration');
+      console.error('Error updating IP config:', error);
+      toast.error('Failed to update IP configuration');
     }
   };
 
@@ -188,169 +168,226 @@ const DeviceDetails = () => {
     return `${days}d ${hours}h ${minutes}m`;
   };
 
-  const getConnectionIcon = (type?: string) => {
-    if (type === 'both') return <><Wifi className="w-4 h-4" /> + <Cable className="w-4 h-4" /></>;
-    if (type === 'ethernet') return <Cable className="w-4 h-4" />;
-    return <Wifi className="w-4 h-4" />;
-  };
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={() => navigate('/devices')} className="gap-2">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Devices
-      </Button>
-
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{device.name}</h1>
-          <p className="text-muted-foreground">{device.ipAddress}</p>
+        <div className="flex items-center gap-4">
+          <Activity className="w-12 h-12 text-primary" />
+          <h1 className="text-3xl font-bold">{device.name}</h1>
         </div>
-        {getStatusBadge(device.status)}
+        <div className="flex items-center gap-2">
+          <Badge variant={device.status === 'offline' ? 'destructive' : 'default'}>
+            {getConnectionStatus()}
+          </Badge>
+          <Badge variant={device.status === 'playing' ? 'default' : 'secondary'}>
+            {getPlaybackStatus()}
+          </Badge>
+        </div>
       </div>
 
-      <DeviceCard
-        device={device}
-        groupName={groups.find(g => g.id === device.groupId)?.name}
-        onPlayPause={() => handlePlayPause()}
-        onVolumeChange={handleCardVolumeChange}
-      />
-
-      {/* Controls Section */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Controls</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Device Control */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Device Control
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Play/Pause Button */}
             <Button 
-              onClick={() => setShowUpdateDialog(true)} 
-              variant="outline"
-              disabled={isUpdating}
-              className="gap-2"
+              onClick={handlePlayPause}
+              className="w-full h-12 text-lg gap-2"
+              variant={device.status === 'playing' ? 'default' : 'outline'}
             >
-              <RefreshCw className={`w-5 h-5 ${isUpdating ? 'animate-spin' : ''}`} />
-              {isUpdating ? 'Updating...' : 'Full System Update'}
+              {device.status === 'playing' ? (
+                <>
+                  <Pause className="w-5 h-5" />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play className="w-5 h-5" />
+                  Play
+                </>
+              )}
             </Button>
-            <Button 
-              onClick={handleRestart}
-              variant="outline"
-              className="gap-2"
-            >
-              <Power className="w-5 h-5" />
-              Restart Device
-            </Button>
-          </div>
 
-          {isUpdating && (
+            {/* Volume Control */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Update Progress</span>
-                <span className="text-sm font-semibold">{updateProgress}%</span>
+                <Label className="flex items-center gap-2">
+                  <Volume2 className="w-4 h-4" />
+                  Volume
+                </Label>
+                <span className="text-sm font-semibold">{device.volume || 50}%</span>
               </div>
-              <Progress value={updateProgress} className="h-2" />
-              {updateStatus && (
-                <p className="text-xs text-muted-foreground">{updateStatus}</p>
-              )}
+              <Slider
+                value={[device.volume || 50]}
+                onValueChange={handleVolumeChange}
+                max={100}
+                step={1}
+              />
             </div>
-          )}
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            {/* Group Selection */}
+            <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <Volume2 className="w-4 h-4" />
-                Volume
+                <Activity className="w-4 h-4" />
+                Group
               </Label>
-              <span className="text-sm font-semibold">{device.volume || 50}%</span>
+              <Select value={selectedGroupId} onValueChange={handleGroupChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Slider
-              value={[device.volume || 50]}
-              onValueChange={handleVolumeChange}
-              max={100}
-              step={1}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Device Info Section */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Device Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* System Controls */}
+            <div className="space-y-3 pt-4 border-t border-border">
+              <Label className="text-sm text-muted-foreground">System Controls</Label>
+              <Button 
+                onClick={handleUpdateSystem}
+                variant="outline"
+                className="w-full gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Update System
+              </Button>
+              <Button 
+                onClick={handleRestart}
+                variant="outline"
+                className="w-full gap-2"
+              >
+                <Power className="w-4 h-4" />
+                Restart Device
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right Column - Device Information */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Device Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Connection</span>
-                <div className="flex items-center gap-2">
-                  {getConnectionIcon(device.connectionType)}
-                  <span className="text-sm font-semibold">
-                    {device.connectionType === 'both' ? 'Både två' : device.connectionType === 'wifi' ? (device.wifiSSID || 'WiFi') : device.connectionType === 'ethernet' ? 'Ethernet' : (device.wifiSSID || 'N/A')}
-                  </span>
-                </div>
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Wifi className="w-4 h-4" />
+                  Connection
+                </span>
+                <span className="text-sm font-semibold">WiFi</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Uptime</span>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold">{formatUptime(device.uptime)}</span>
-                </div>
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Cable className="w-4 h-4" />
+                  Network
+                </span>
+                <span className="text-sm font-semibold">N/A</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-border">
-                <span className="text-muted-foreground">Last Seen</span>
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-accent" />
-                  <span className="text-sm font-semibold">{formatLastSeen(device.lastSeen)}</span>
-                </div>
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  IP Address
+                </span>
+                <span className="text-sm font-semibold">{device.ipAddress}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Group
+                </span>
+                <span className="text-sm font-semibold">
+                  {groups.find(g => g.id === device.groupId)?.name || 'N/A'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Uptime
+                </span>
+                <span className="text-sm font-semibold text-primary">{formatUptime(device.uptime)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Last Seen
+                </span>
+                <span className="text-sm font-semibold text-primary">{formatLastSeen(device.lastSeen)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Version
+                </span>
+                <span className="text-sm font-semibold">{device.firmwareVersion || 'N/A'}</span>
               </div>
             </div>
-            <div className="space-y-3">
-              {device.deviceId && (
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Device ID</span>
-                  <code className="text-xs">{device.deviceId}</code>
-                </div>
-              )}
-              {device.groupId && (
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Group</span>
-                  <span className="text-sm">{groups.find(g => g.id === device.groupId)?.name || device.groupId}</span>
-                </div>
-              )}
-              {device.wifiSSID && (
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">WiFi SSID</span>
-                  <span className="text-sm">{device.wifiSSID}</span>
-                </div>
-              )}
-              {device.dns && (
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">DNS</span>
-                  <code className="text-xs">{device.dns}</code>
-                </div>
-              )}
-              {device.streamUrl && (
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Stream URL</span>
-                  <span className="text-xs truncate max-w-[200px]">{device.streamUrl}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Network Configuration Section */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Network Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* System Performance */}
+            <div className="space-y-3 pt-4 border-t border-border">
+              <Label className="text-sm text-muted-foreground">System Performance</Label>
+              <div className="grid grid-cols-3 gap-3">
+                <Card className="bg-card/50">
+                  <CardContent className="p-4 text-center space-y-2">
+                    <Cpu className="w-6 h-6 mx-auto text-primary" />
+                    <div>
+                      <div className="text-2xl font-bold text-primary">{device.cpuUsage || 0}%</div>
+                      <div className="text-xs text-muted-foreground">CPU</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card/50">
+                  <CardContent className="p-4 text-center space-y-2">
+                    <MemoryStick className="w-6 h-6 mx-auto text-warning" />
+                    <div>
+                      <div className="text-2xl font-bold text-warning">{device.memoryUsage || 0}%</div>
+                      <div className="text-xs text-muted-foreground">RAM</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card/50">
+                  <CardContent className="p-4 text-center space-y-2">
+                    <HardDrive className="w-6 h-6 mx-auto text-primary" />
+                    <div>
+                      <div className="text-2xl font-bold text-primary">{device.diskUsage || 0}%</div>
+                      <div className="text-xs text-muted-foreground">Disk</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottom Section - Network and IP Configuration */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Network Configuration */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wifi className="w-5 h-5" />
+              Network Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="wifi-ssid">WiFi SSID</Label>
               <Input
@@ -370,6 +407,22 @@ const DeviceDetails = () => {
                 placeholder="Enter to change"
               />
             </div>
+            <Button onClick={handleWifiConfig} className="w-full gap-2">
+              <Wifi className="w-4 h-4" />
+              Apply WiFi Configuration
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* IP Address Configuration */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cable className="w-5 h-5" />
+              IP Address Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="ip-address">IP Address</Label>
               <Input
@@ -406,28 +459,13 @@ const DeviceDetails = () => {
                 placeholder="8.8.4.4"
               />
             </div>
-          </div>
-          <Button onClick={handleNetworkConfig} className="gap-2">
-            <Wifi className="w-4 h-4" />
-            Apply Network Configuration
-          </Button>
-        </CardContent>
-      </Card>
-
-      <AlertDialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Full System Update</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will update DietPi, pull from GitHub, clean packages, and restart the device. Continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
-            <AlertDialogAction onClick={handleFullUpdate}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            <Button onClick={handleIpConfig} className="w-full gap-2">
+              <Cable className="w-4 h-4" />
+              Apply IP Configuration
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
