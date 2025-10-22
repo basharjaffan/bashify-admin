@@ -41,6 +41,7 @@ export interface Group {
     uploadedAt?: any;
   }>;
   announcementInterval?: number; // in minutes
+  announcementVolume?: number; // 0-100
 }
 
 export interface User {

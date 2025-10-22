@@ -9,6 +9,7 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
+import { Slider } from '../components/ui/slider';
 import { Layers, Plus, Trash2, Radio, Link as LinkIcon, Upload, Pencil, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -30,7 +31,8 @@ const Groups = () => {
   const [formData, setFormData] = useState({
     name: '',
     streamUrl: '',
-    announcementInterval: 10
+    announcementInterval: 10,
+    announcementVolume: 100
   });
   const [localFiles, setLocalFiles] = useState<FileList | null>(null);
   const [announcementFiles, setAnnouncementFiles] = useState<FileList | null>(null);
@@ -68,7 +70,7 @@ const Groups = () => {
       }
 
       setOpen(false);
-      setFormData({ name: '', streamUrl: '', announcementInterval: 10 });
+      setFormData({ name: '', streamUrl: '', announcementInterval: 10, announcementVolume: 100 });
       setLocalFiles(null);
       setUploadType('url');
     } catch (error: any) {
@@ -133,7 +135,8 @@ const Groups = () => {
       const existingAnnouncements = group?.announcements || [];
       await groupsApi.update(groupId, { 
         announcements: [...existingAnnouncements, ...uploadedAnnouncements],
-        announcementInterval: formData.announcementInterval
+        announcementInterval: formData.announcementInterval,
+        announcementVolume: formData.announcementVolume
       });
       
       toast.success(`${uploadedAnnouncements.length} announcement(s) uploaded!`);
@@ -325,9 +328,12 @@ const Groups = () => {
                 <div className="text-sm space-y-1 pt-2 border-t border-border">
                   <div className="flex items-center gap-1 text-muted-foreground">
                     <Volume2 className="w-3 h-3" />
-                    Announcements ({group.announcements.length})
+                    📢 {group.announcements.length} announcements
                     {group.announcementInterval && (
                       <span className="text-[10px]">• Every {group.announcementInterval} min</span>
+                    )}
+                    {group.announcementVolume !== undefined && (
+                      <span className="text-[10px]">• Vol: {group.announcementVolume}%</span>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground max-h-16 overflow-y-auto space-y-1">
@@ -479,6 +485,26 @@ const Groups = () => {
               />
               <p className="text-xs text-muted-foreground">
                 How often announcements should play (1-1440 minutes)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Announcement Volume</Label>
+              <div className="flex items-center gap-4">
+                <Volume2 className="h-4 w-4" />
+                <Slider
+                  value={[formData.announcementVolume]}
+                  min={0}
+                  max={100}
+                  step={5}
+                  onValueChange={(value) => setFormData({ ...formData, announcementVolume: value[0] })}
+                  className="flex-1"
+                />
+                <span className="text-sm font-bold min-w-[3ch] text-right">
+                  {formData.announcementVolume}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Volume for voice announcements (music will duck to 50%)
               </p>
             </div>
           </div>
