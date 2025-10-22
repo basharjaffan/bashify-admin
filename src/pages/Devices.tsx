@@ -245,8 +245,10 @@ const Devices = () => {
         streamUrl: hasGroup ? selectedGroup?.streamUrl : undefined
       });
       
-      // Send play command to restart music with new group
+      // Stop current music and start new group music
       if (hasGroup && selectedGroup?.streamUrl) {
+        await commandsApi.send(deviceId, 'stop');
+        await new Promise(resolve => setTimeout(resolve, 500));
         await commandsApi.send(deviceId, 'play', selectedGroup.streamUrl);
       }
       
