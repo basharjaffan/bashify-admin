@@ -133,6 +133,16 @@ const DeviceDetails = () => {
       setIsUpdating(false);
     }
   };
+  const handleRestart = async () => {
+    try {
+      await commandsApi.send(device.id, 'reboot');
+      toast.success('Device is restarting...');
+    } catch (error) {
+      console.error('Error restarting device:', error);
+      toast.error('Failed to restart device');
+    }
+  };
+
 
   const handleNetworkConfig = async () => {
     try {
@@ -221,6 +231,14 @@ const DeviceDetails = () => {
             >
               <RefreshCw className={`w-5 h-5 ${isUpdating ? 'animate-spin' : ''}`} />
               {isUpdating ? 'Updating...' : 'Full System Update'}
+            </Button>
+            <Button 
+              onClick={handleRestart}
+              variant="outline"
+              className="gap-2"
+            >
+              <Power className="w-5 h-5" />
+              Restart Device
             </Button>
           </div>
 

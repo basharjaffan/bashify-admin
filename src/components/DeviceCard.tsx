@@ -67,6 +67,12 @@ export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange }: D
               <div className="text-xs text-muted-foreground font-mono mt-1">
                 {device.ipAddress}
               </div>
+              {device.wifiSSID && (
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <span className="font-semibold">Network:</span>
+                  <span className="font-mono">{device.wifiSSID}</span>
+                </div>
+              )}
             </div>
           </div>
           <Badge 
