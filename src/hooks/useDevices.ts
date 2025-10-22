@@ -27,11 +27,23 @@ export function useDevices() {
           const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
           const isOffline = secondsSinceLastSeen > 30;
           
+          // Determine status: offline takes priority, then use Firebase status
+          let deviceStatus: 'online' | 'offline' | 'playing' | 'paused' = 'online';
+          if (isOffline) {
+            deviceStatus = 'offline';
+          } else if (data.status) {
+            // Use exact status from Firebase if available
+            deviceStatus = data.status;
+          }
+          
+          // Log status changes for debugging
+          console.log(`Device ${doc.id} (${data.name}): status="${data.status}", isOffline=${isOffline}, finalStatus="${deviceStatus}"`);
+          
           devicesData.push({
             id: doc.id,
             name: data.name || doc.id,
             ipAddress: data.ipAddress || 'unknown',
-            status: isOffline ? 'offline' : (data.status || 'online'),
+            status: deviceStatus,
             volume: data.volume || 50,
             currentUrl: data.currentUrl,
             groupId: data.groupId || data.group,
