@@ -55,6 +55,8 @@ const Groups = () => {
         // Upload files to Firebase Storage
         const uploadedFiles = await storageApi.uploadGroupFiles(tempGroupId, localFiles);
         groupData.localFiles = uploadedFiles;
+        // Set streamUrl to first file
+        groupData.streamUrl = uploadedFiles[0]?.url || null;
         
         // Create group with uploaded file references
         await groupsApi.create(groupData);
