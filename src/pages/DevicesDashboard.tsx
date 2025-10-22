@@ -22,6 +22,16 @@ export default function DevicesDashboard() {
     }
   };
 
+  const handleVolumeChange = async (device: Device, volume: number) => {
+    try {
+      await commandsApi.send(device.id, 'volume', undefined, volume);
+      toast.success(`Volume set to ${volume}%`);
+    } catch (error) {
+      console.error('Error updating volume:', error);
+      toast.error('Failed to update volume');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -73,6 +83,7 @@ export default function DevicesDashboard() {
                 device={device}
                 groupName={group?.name}
                 onPlayPause={handlePlayPause}
+                onVolumeChange={handleVolumeChange}
               />
             );
           })}

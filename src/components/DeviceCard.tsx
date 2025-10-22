@@ -2,15 +2,17 @@ import { Device } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wifi, WifiOff, Music, HardDrive, Cpu, MemoryStick, Play, Pause } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Wifi, WifiOff, Music, HardDrive, Cpu, MemoryStick, Play, Pause, Volume2 } from 'lucide-react';
 
 interface DeviceCardProps {
   device: Device;
   groupName?: string;
   onPlayPause?: (device: Device) => void;
+  onVolumeChange?: (device: Device, volume: number) => void;
 }
 
-export function DeviceCard({ device, groupName, onPlayPause }: DeviceCardProps) {
+export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange }: DeviceCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'online': return 'bg-success';
@@ -76,14 +78,14 @@ export function DeviceCard({ device, groupName, onPlayPause }: DeviceCardProps) 
       </CardHeader>
       
       <CardContent className="relative space-y-4 pt-0">
-        {/* Play/Pause Controls */}
+        {/* Play/Pause & Volume Controls */}
         {onPlayPause && (
-          <div className="flex gap-2 p-3 rounded-lg bg-gradient-to-br from-secondary/50 to-secondary/30 border border-border/50">
+          <div className="flex gap-3 p-3 rounded-lg bg-gradient-to-br from-secondary/50 to-secondary/30 border border-border/50">
             {device.status === 'playing' ? (
               <Button
                 size="sm"
                 onClick={() => onPlayPause(device)}
-                className="gap-2 flex-1 bg-gradient-to-r from-destructive to-destructive/80 hover:from-destructive/90 hover:to-destructive/70 shadow-sm"
+                className="gap-2 bg-gradient-to-r from-destructive to-destructive/80 hover:from-destructive/90 hover:to-destructive/70 shadow-sm shrink-0"
                 variant="default"
               >
                 <Pause className="h-4 w-4" />
@@ -93,11 +95,29 @@ export function DeviceCard({ device, groupName, onPlayPause }: DeviceCardProps) 
               <Button
                 size="sm"
                 onClick={() => onPlayPause(device)}
-                className="gap-2 flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-glow"
+                className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-glow shrink-0"
               >
                 <Play className="h-4 w-4" />
                 <span className="font-semibold">Play</span>
               </Button>
+            )}
+            
+            {/* Volume Control */}
+            {onVolumeChange && (
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Volume2 className="h-4 w-4 text-primary shrink-0" />
+                <Slider
+                  value={[device.volume || 0]}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onValueChange={(value) => onVolumeChange(device, value[0])}
+                  className="flex-1"
+                />
+                <span className="text-xs font-bold text-primary min-w-[3ch] text-right">
+                  {device.volume || 0}%
+                </span>
+              </div>
             )}
           </div>
         )}

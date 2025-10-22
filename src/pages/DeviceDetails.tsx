@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
+import { Device } from '../types';
 import { devicesApi, commandsApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { DeviceCard } from '../components/DeviceCard';
@@ -108,6 +109,17 @@ const DeviceDetails = () => {
     }
   };
 
+  const handleCardVolumeChange = async (device: Device, volume: number) => {
+    try {
+      await devicesApi.update(device.id, { volume });
+      await commandsApi.send(device.id, 'volume', undefined, volume);
+      toast.success(`Volume set to ${volume}%`);
+    } catch (error) {
+      console.error('Error updating volume:', error);
+      toast.error('Failed to update volume');
+    }
+  };
+
   const handleFullUpdate = async () => {
     setIsUpdating(true);
     setShowUpdateDialog(false);
@@ -191,6 +203,7 @@ const DeviceDetails = () => {
         device={device}
         groupName={groups.find(g => g.id === device.groupId)?.name}
         onPlayPause={() => handlePlayPause()}
+        onVolumeChange={handleCardVolumeChange}
       />
 
       {/* Controls Section */}
