@@ -13,7 +13,7 @@ import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Progress } from '../components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
-import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings, Volume2 } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Wifi, Cable, Radio, Activity, Clock, RefreshCw, Settings, Volume2, Power } from 'lucide-react';
 import { toast } from 'sonner';
 import { WiFiSettings } from '../components/WiFiSettings';
 import { doc, onSnapshot } from 'firebase/firestore';

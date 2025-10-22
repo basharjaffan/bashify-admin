@@ -50,7 +50,7 @@ const Layout = () => {
             </Link>
 
             {/* Center Navigation */}
-            <nav className="hidden lg:flex items-center gap-2">
+            <nav className="hidden lg:flex items-center gap-1.5">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
@@ -59,14 +59,14 @@ const Layout = () => {
                     key={item.path}
                     to={item.path}
                     className={cn(
-                      "group flex flex-col items-center gap-1.5 px-6 py-3 rounded-2xl text-xs font-medium transition-all duration-200",
+                      "group flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200",
                       active
                         ? "bg-gradient-primary text-primary-foreground shadow-glow scale-105"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
                   >
                     <Icon className={cn(
-                      "w-5 h-5 transition-transform",
+                      "w-4 h-4 transition-transform",
                       active ? "scale-110" : "group-hover:scale-110"
                     )} />
                     <span>{item.name}</span>
