@@ -41,107 +41,153 @@ export function DeviceCard({ device, groupName, onPlayPause }: DeviceCardProps) 
   const timeSinceLastSeen = Math.floor((Date.now() - device.lastSeen.getTime()) / 1000);
   
   return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            {getStatusIcon(device.status)}
-            <div>
-              <CardTitle className="text-lg">{device.name}</CardTitle>
-              <div className="text-sm text-muted-foreground">
-                {device.ipAddress} • {device.id.substring(0, 8)}
+    <Card className="group relative overflow-hidden bg-gradient-to-br from-card to-card/80 border-border/50 hover:border-primary/50 hover:shadow-glow transition-all duration-300 animate-fade-in">
+      {/* Status Glow Effect */}
+      <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl opacity-20 transition-opacity ${
+        device.status === 'playing' ? 'bg-primary' : 
+        device.status === 'online' ? 'bg-success' : 'bg-muted'
+      }`} />
+      
+      <CardHeader className="relative pb-3">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className={`p-2.5 rounded-xl bg-gradient-to-br transition-all duration-300 ${
+              device.status === 'playing' ? 'from-primary/20 to-primary/10 shadow-glow' : 
+              device.status === 'online' ? 'from-success/20 to-success/10' : 
+              'from-muted/20 to-muted/10'
+            }`}>
+              {getStatusIcon(device.status)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-lg font-bold truncate group-hover:text-primary transition-colors">
+                {device.name}
+              </CardTitle>
+              <div className="text-xs text-muted-foreground font-mono mt-1">
+                {device.ipAddress}
               </div>
             </div>
           </div>
-          <Badge className={`${getStatusColor(device.status)} text-white font-semibold`}>
+          <Badge 
+            className={`${getStatusColor(device.status)} text-white font-semibold px-3 py-1 shadow-sm whitespace-nowrap`}
+          >
             {device.status.toUpperCase()}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      
+      <CardContent className="relative space-y-4 pt-0">
         {/* Play/Pause Controls */}
         {onPlayPause && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 p-3 rounded-lg bg-gradient-to-br from-secondary/50 to-secondary/30 border border-border/50">
             {device.status === 'playing' ? (
               <Button
                 size="sm"
                 onClick={() => onPlayPause(device)}
-                className="gap-2 flex-1"
-                variant="outline"
+                className="gap-2 flex-1 bg-gradient-to-r from-destructive to-destructive/80 hover:from-destructive/90 hover:to-destructive/70 shadow-sm"
+                variant="default"
               >
                 <Pause className="h-4 w-4" />
-                Pause
+                <span className="font-semibold">Pause</span>
               </Button>
             ) : (
               <Button
                 size="sm"
                 onClick={() => onPlayPause(device)}
-                className="gap-2 flex-1"
+                className="gap-2 flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-glow"
               >
                 <Play className="h-4 w-4" />
-                Play
+                <span className="font-semibold">Play</span>
               </Button>
             )}
           </div>
         )}
 
-        {/* Connection Status */}
-        <div className="flex items-center gap-2 text-sm">
-          {device.wifiConnected ? (
-            <Wifi className="h-4 w-4 text-green-500" />
-          ) : (
-            <WifiOff className="h-4 w-4 text-gray-400" />
-          )}
-          <span>
-            {device.wifiConnected 
-              ? (device.wifiSSID || device.wifiSsid || 'WiFi') 
-              : 'Ethernet'}
-          </span>
-        </div>
-
-        {/* Group */}
-        {groupName && (
-          <div className="text-sm text-muted-foreground">
-            Grupp: <span className="font-medium">{groupName}</span>
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Connection Status */}
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary/30 border border-border/30">
+            {device.wifiConnected ? (
+              <Wifi className="h-4 w-4 text-success shrink-0" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-muted-foreground shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Nätverk</div>
+              <div className="text-xs font-medium truncate">
+                {device.wifiConnected 
+                  ? (device.wifiSSID || device.wifiSsid || 'WiFi') 
+                  : 'Ethernet'}
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Group */}
+          {groupName && (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary/30 border border-border/30">
+              <Music className="h-4 w-4 text-accent shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Grupp</div>
+                <div className="text-xs font-medium truncate">{groupName}</div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Current Stream */}
         {device.currentUrl && (
-          <div className="flex items-center gap-2 text-sm">
-            <Music className="h-4 w-4" />
-            <span className="truncate">{device.currentUrl}</span>
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+            <Music className="h-4 w-4 text-primary animate-pulse shrink-0" />
+            <span className="text-xs text-primary truncate flex-1">{device.currentUrl}</span>
           </div>
         )}
 
         {/* System Metrics */}
-        <div className="grid grid-cols-3 gap-2 text-xs">
-          <div className="flex items-center gap-1">
-            <Cpu className="h-3 w-3" />
-            <span>{device.cpuUsage?.toFixed(1)}%</span>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-secondary/20 border border-border/20">
+            <Cpu className="h-4 w-4 text-info" />
+            <div className="text-center">
+              <div className="text-xs font-bold">{device.cpuUsage?.toFixed(1)}%</div>
+              <div className="text-[10px] text-muted-foreground">CPU</div>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <MemoryStick className="h-3 w-3" />
-            <span>{device.memoryUsage?.toFixed(1)}%</span>
+          <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-secondary/20 border border-border/20">
+            <MemoryStick className="h-4 w-4 text-warning" />
+            <div className="text-center">
+              <div className="text-xs font-bold">{device.memoryUsage?.toFixed(1)}%</div>
+              <div className="text-[10px] text-muted-foreground">RAM</div>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <HardDrive className="h-3 w-3" />
-            <span>{device.diskUsage}%</span>
+          <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-secondary/20 border border-border/20">
+            <HardDrive className="h-4 w-4 text-accent" />
+            <div className="text-center">
+              <div className="text-xs font-bold">{device.diskUsage}%</div>
+              <div className="text-[10px] text-muted-foreground">Disk</div>
+            </div>
           </div>
         </div>
 
-        {/* Uptime & Last Seen */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>Uptime: {formatUptime(device.uptime)}</div>
-          <div>Last seen: {timeSinceLastSeen < 60 ? `${timeSinceLastSeen}s ago` : 
+        {/* Uptime & Details */}
+        <div className="pt-3 border-t border-border/50 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Uptime</span>
+            <span className="font-medium">{formatUptime(device.uptime)}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Last seen</span>
+            <span className="font-medium">
+              {timeSinceLastSeen < 60 ? `${timeSinceLastSeen}s ago` : 
                timeSinceLastSeen < 3600 ? `${Math.floor(timeSinceLastSeen / 60)}m ago` : 
-               `${Math.floor(timeSinceLastSeen / 3600)}h ago`}</div>
-          <div>Version: {device.firmwareVersion || 'unknown'}</div>
-        </div>
-
-        {/* Volume */}
-        <div className="text-sm">
-          Volume: {device.volume}%
+               `${Math.floor(timeSinceLastSeen / 3600)}h ago`}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Version</span>
+            <span className="font-mono text-[10px]">{device.firmwareVersion || 'unknown'}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Volume</span>
+            <span className="font-bold text-primary">{device.volume}%</span>
+          </div>
         </div>
       </CardContent>
     </Card>
