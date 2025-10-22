@@ -9,7 +9,7 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
-import { Layers, Plus, Trash2, Radio, Link as LinkIcon, Upload, Pencil } from 'lucide-react';
+import { Layers, Plus, Trash2, Radio, Link as LinkIcon, Upload, Pencil, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -29,9 +29,13 @@ const Groups = () => {
   const [uploadType, setUploadType] = useState<'url' | 'local'>('url');
   const [formData, setFormData] = useState({
     name: '',
-    streamUrl: ''
+    streamUrl: '',
+    announcementInterval: 10
   });
   const [localFiles, setLocalFiles] = useState<FileList | null>(null);
+  const [announcementFiles, setAnnouncementFiles] = useState<FileList | null>(null);
+  const [showAnnouncementUpload, setShowAnnouncementUpload] = useState(false);
+  const [selectedGroupForAnnouncement, setSelectedGroupForAnnouncement] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +68,7 @@ const Groups = () => {
       }
 
       setOpen(false);
-      setFormData({ name: '', streamUrl: '' });
+      setFormData({ name: '', streamUrl: '', announcementInterval: 10 });
       setLocalFiles(null);
       setUploadType('url');
     } catch (error: any) {
@@ -112,6 +116,47 @@ const Groups = () => {
         console.error('Error updating group name:', error);
         toast.error('Misslyckades att uppdatera gruppnamn');
       }
+    }
+  };
+
+  const handleAnnouncementUpload = async (groupId: string) => {
+    if (!announcementFiles || announcementFiles.length === 0) {
+      toast.error('Please select announcement files');
+      return;
+    }
+
+    try {
+      toast.info('Uploading announcements...');
+      const group = groups.find(g => g.id === groupId);
+      const uploadedAnnouncements = await storageApi.uploadAnnouncements(groupId, announcementFiles);
+      
+      const existingAnnouncements = group?.announcements || [];
+      await groupsApi.update(groupId, { 
+        announcements: [...existingAnnouncements, ...uploadedAnnouncements],
+        announcementInterval: formData.announcementInterval
+      });
+      
+      toast.success(`${uploadedAnnouncements.length} announcement(s) uploaded!`);
+      setShowAnnouncementUpload(false);
+      setAnnouncementFiles(null);
+      setSelectedGroupForAnnouncement(null);
+    } catch (error) {
+      console.error('Error uploading announcements:', error);
+      toast.error('Failed to upload announcements');
+    }
+  };
+
+  const handleDeleteAnnouncement = async (groupId: string, announcementIndex: number) => {
+    try {
+      const group = groups.find(g => g.id === groupId);
+      if (!group || !group.announcements) return;
+
+      const updatedAnnouncements = group.announcements.filter((_, idx) => idx !== announcementIndex);
+      await groupsApi.update(groupId, { announcements: updatedAnnouncements });
+      toast.success('Announcement deleted');
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      toast.error('Failed to delete announcement');
     }
   };
 
@@ -274,20 +319,65 @@ const Groups = () => {
               ) : (
                 <div className="text-sm text-muted-foreground">No audio source configured</div>
               )}
-              
-              <Button
-                size="sm"
-                variant="destructive"
-                className="w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setGroupToDelete(group.id);
-                  setDeleteDialogOpen(true);
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
+
+              {/* Announcements Section */}
+              {group.announcements && group.announcements.length > 0 && (
+                <div className="text-sm space-y-1 pt-2 border-t border-border">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Volume2 className="w-3 h-3" />
+                    Announcements ({group.announcements.length})
+                    {group.announcementInterval && (
+                      <span className="text-[10px]">• Every {group.announcementInterval} min</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground max-h-16 overflow-y-auto space-y-1">
+                    {group.announcements.slice(0, 2).map((announcement, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <span className="truncate">{announcement.name}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 w-5 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAnnouncement(group.id, idx);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {group.announcements.length > 2 && <div>+{group.announcements.length - 2} more</div>}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedGroupForAnnouncement(group.id);
+                    setShowAnnouncementUpload(true);
+                  }}
+                >
+                  <Volume2 className="w-4 h-4 mr-2" />
+                  Announcements
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setGroupToDelete(group.id);
+                    setDeleteDialogOpen(true);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -352,6 +442,57 @@ const Groups = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Announcement Upload Dialog */}
+      <Dialog open={showAnnouncementUpload} onOpenChange={setShowAnnouncementUpload}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Announcements</DialogTitle>
+            <DialogDescription>
+              Upload voice messages to play at regular intervals
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="announcement-files">Audio Files</Label>
+              <Input
+                id="announcement-files"
+                type="file"
+                accept="audio/*"
+                multiple
+                onChange={(e) => setAnnouncementFiles(e.target.files)}
+                className="cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground">
+                Upload MP3, WAV or other audio files for announcements
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interval">Play Interval (minutes)</Label>
+              <Input
+                id="interval"
+                type="number"
+                min="1"
+                max="1440"
+                value={formData.announcementInterval}
+                onChange={(e) => setFormData({ ...formData, announcementInterval: parseInt(e.target.value) || 10 })}
+              />
+              <p className="text-xs text-muted-foreground">
+                How often announcements should play (1-1440 minutes)
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={() => selectedGroupForAnnouncement && handleAnnouncementUpload(selectedGroupForAnnouncement)}
+              disabled={!announcementFiles || announcementFiles.length === 0}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

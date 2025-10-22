@@ -34,6 +34,13 @@ export interface Group {
   createdAt?: any;
   localFiles?: Array<{ name: string; url: string; size: number }>;
   uploadType?: 'url' | 'local';
+  announcements?: Array<{ 
+    name: string; 
+    url: string; 
+    size: number;
+    uploadedAt?: any;
+  }>;
+  announcementInterval?: number; // in minutes
 }
 
 export interface User {

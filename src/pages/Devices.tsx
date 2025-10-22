@@ -29,6 +29,7 @@ const Devices = () => {
   const { groups } = useGroups();
   const [open, setOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('filter') || 'all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
   const [editName, setEditName] = useState('');
@@ -61,12 +62,20 @@ const Devices = () => {
   }, [searchParams]);
 
   const filteredDevices = devices.filter(device => {
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'playing') return device.status === 'playing';
-    if (statusFilter === 'online') return device.status === 'online' || device.status === 'playing';
-    if (statusFilter === 'offline') return device.status === 'offline';
-    if (statusFilter === 'paused') return device.status === 'paused';
-    return true;
+    const matchesFilter = (() => {
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'playing') return device.status === 'playing';
+      if (statusFilter === 'online') return device.status === 'online' || device.status === 'playing';
+      if (statusFilter === 'offline') return device.status === 'offline';
+      if (statusFilter === 'paused') return device.status === 'paused';
+      return true;
+    })();
+
+    const matchesSearch = searchQuery === '' || 
+      device.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      device.ipAddress.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesFilter && matchesSearch;
   });
 
   const handleFilterChange = (filter: string) => {
@@ -455,42 +464,54 @@ const Devices = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <Button
-          variant={statusFilter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => handleFilterChange('all')}
-        >
-          All ({devices.length})
-        </Button>
-        <Button
-          variant={statusFilter === 'playing' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => handleFilterChange('playing')}
-        >
-          Playing ({devices.filter(d => d.status === 'playing').length})
-        </Button>
-        <Button
-          variant={statusFilter === 'online' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => handleFilterChange('online')}
-        >
-          Online ({devices.filter(d => d.status === 'online' || d.status === 'playing').length})
-        </Button>
-        <Button
-          variant={statusFilter === 'offline' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => handleFilterChange('offline')}
-        >
-          Offline ({devices.filter(d => d.status === 'offline').length})
-        </Button>
-        <Button
-          variant={statusFilter === 'paused' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => handleFilterChange('paused')}
-        >
-          Paused ({devices.filter(d => d.status === 'paused').length})
-        </Button>
+      <div className="flex items-center gap-4 overflow-x-auto pb-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleFilterChange('all')}
+          >
+            All ({devices.length})
+          </Button>
+          <Button
+            variant={statusFilter === 'playing' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleFilterChange('playing')}
+          >
+            Playing ({devices.filter(d => d.status === 'playing').length})
+          </Button>
+          <Button
+            variant={statusFilter === 'online' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleFilterChange('online')}
+          >
+            Online ({devices.filter(d => d.status === 'online' || d.status === 'playing').length})
+          </Button>
+          <Button
+            variant={statusFilter === 'offline' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleFilterChange('offline')}
+          >
+            Offline ({devices.filter(d => d.status === 'offline').length})
+          </Button>
+          <Button
+            variant={statusFilter === 'paused' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleFilterChange('paused')}
+          >
+            Paused ({devices.filter(d => d.status === 'paused').length})
+          </Button>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="flex-1 max-w-md ml-auto">
+          <Input
+            placeholder="Search devices by name or IP address..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full"
+          />
+        </div>
       </div>
 
       {filteredDevices.length === 0 ? (

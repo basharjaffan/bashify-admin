@@ -168,6 +168,20 @@ export const storageApi = {
     return Promise.all(uploadPromises);
   },
 
+  uploadAnnouncements: async (groupId: string, files: FileList): Promise<Array<{ name: string; url: string; size: number; uploadedAt: any }>> => {
+    const uploadPromises = Array.from(files).map(async (file) => {
+      const path = `groups/${groupId}/announcements/${file.name}`;
+      const url = await storageApi.uploadFile(file, path);
+      return {
+        name: file.name,
+        url,
+        size: file.size,
+        uploadedAt: new Date()
+      };
+    });
+    return Promise.all(uploadPromises);
+  },
+
   deleteFile: async (path: string) => {
     const storageRef = ref(storage, path);
     await deleteObject(storageRef);
