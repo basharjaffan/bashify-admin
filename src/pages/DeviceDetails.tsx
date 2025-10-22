@@ -191,23 +191,25 @@ const DeviceDetails = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
-            <Button
-              size="lg"
-              onClick={handlePlayPause}
-              className="gap-2"
-            >
-              {device.status === 'playing' ? (
-                <>
-                  <Pause className="w-5 h-5" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5" />
-                  Play
-                </>
-              )}
-            </Button>
+            {device.status === 'playing' ? (
+              <Button
+                size="lg"
+                onClick={handlePlayPause}
+                className="gap-2"
+              >
+                <Pause className="w-5 h-5" />
+                Pause
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                onClick={handlePlayPause}
+                className="gap-2"
+              >
+                <Play className="w-5 h-5" />
+                Play
+              </Button>
+            )}
 
             <Button 
               onClick={() => setShowUpdateDialog(true)} 
