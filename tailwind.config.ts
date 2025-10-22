@@ -53,6 +53,9 @@ export default {
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
+        'success-foreground': "hsl(var(--success-foreground))",
+        'warning-foreground': "hsl(var(--warning-foreground))",
+        'info-foreground': "hsl(var(--info-foreground))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

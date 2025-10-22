@@ -179,11 +179,11 @@ const DeviceDetails = () => {
           <h1 className="text-3xl font-bold">{device.name}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={device.status === 'offline' ? 'destructive' : 'default'}>
-            {getConnectionStatus()}
+          <Badge variant={device.status === 'offline' ? 'destructive' : 'success'}>
+            {device.status === 'offline' ? 'Offline' : 'Online'}
           </Badge>
-          <Badge variant={device.status === 'playing' ? 'default' : 'secondary'}>
-            {getPlaybackStatus()}
+          <Badge variant={device.status === 'playing' ? 'default' : 'outline'}>
+            {device.status === 'playing' ? 'Playing' : 'Not Playing'}
           </Badge>
         </div>
       </div>
@@ -261,7 +261,7 @@ const DeviceDetails = () => {
               <Button 
                 onClick={handleUpdateSystem}
                 variant="outline"
-                className="w-full gap-2"
+                className="w-full gap-2 border-primary/50 hover:bg-primary/10 text-primary"
               >
                 <RefreshCw className="w-4 h-4" />
                 Update System
@@ -269,7 +269,7 @@ const DeviceDetails = () => {
               <Button 
                 onClick={handleRestart}
                 variant="outline"
-                className="w-full gap-2"
+                className="w-full gap-2 border-destructive/50 hover:bg-destructive/10 text-destructive"
               >
                 <Power className="w-4 h-4" />
                 Restart Device
@@ -345,7 +345,7 @@ const DeviceDetails = () => {
             <div className="space-y-3 pt-4 border-t border-border">
               <Label className="text-sm text-muted-foreground">System Performance</Label>
               <div className="grid grid-cols-3 gap-3">
-                <Card className="bg-card/50">
+                <Card className="bg-card/50 border border-primary/30 shadow-lg">
                   <CardContent className="p-4 text-center space-y-2">
                     <Cpu className="w-6 h-6 mx-auto text-primary" />
                     <div>
@@ -354,7 +354,7 @@ const DeviceDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-card/50">
+                <Card className="bg-card/50 border border-warning/30 shadow-lg">
                   <CardContent className="p-4 text-center space-y-2">
                     <MemoryStick className="w-6 h-6 mx-auto text-warning" />
                     <div>
@@ -363,7 +363,7 @@ const DeviceDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-card/50">
+                <Card className="bg-card/50 border border-primary/30 shadow-lg">
                   <CardContent className="p-4 text-center space-y-2">
                     <HardDrive className="w-6 h-6 mx-auto text-primary" />
                     <div>
