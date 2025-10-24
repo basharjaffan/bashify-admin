@@ -114,8 +114,8 @@ const GroupDetails = () => {
   const handleRemoveDevice = async (deviceId: string) => {
     try {
       await devicesApi.update(deviceId, { 
-        groupId: undefined,
-        streamUrl: undefined 
+        groupId: null,
+        streamUrl: null 
       });
       toast.success('Device removed from group');
     } catch (error) {
