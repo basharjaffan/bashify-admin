@@ -482,9 +482,6 @@ const Devices = () => {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Assign Group</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => handleBulkAssignGroup('none')}>
-                  No Group
-                </DropdownMenuItem>
                 {groups.map((group) => (
                   <DropdownMenuItem key={group.id} onClick={() => handleBulkAssignGroup(group.id)}>
                     {group.name}
