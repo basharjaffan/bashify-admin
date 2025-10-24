@@ -43,6 +43,7 @@ const Devices = () => {
     groupId: ''
   });
   const [localVolumes, setLocalVolumes] = useState<Record<string, number>>({});
+  const [optimisticStatus, setOptimisticStatus] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setLocalVolumes((prev) => {
@@ -123,11 +124,31 @@ const Devices = () => {
   };
 
   const handlePlayPause = async (device: any) => {
-    const action = device.status === 'playing' ? 'pause' : 'play';
+    const currentStatus = optimisticStatus[device.id] || device.status;
+    const action = currentStatus === 'playing' ? 'pause' : 'play';
+    const newStatus = action === 'play' ? 'playing' : 'paused';
+    
+    // Optimistic update - uppdatera UI direkt
+    setOptimisticStatus(prev => ({ ...prev, [device.id]: newStatus }));
+    
     try {
       await commandsApi.send(device.id, action, device.streamUrl);
       toast.success(`Device ${action === 'play' ? 'playing' : 'paused'}`);
+      // Rensa optimistic status efter 2 sekunder (Firebase ska ha uppdaterat då)
+      setTimeout(() => {
+        setOptimisticStatus(prev => {
+          const next = { ...prev };
+          delete next[device.id];
+          return next;
+        });
+      }, 2000);
     } catch (error) {
+      // Återställ vid fel
+      setOptimisticStatus(prev => {
+        const next = { ...prev };
+        delete next[device.id];
+        return next;
+      });
       console.error('Error controlling device:', error);
       toast.error('Failed to control device');
     }
@@ -135,22 +156,56 @@ const Devices = () => {
 
   // Explicit controls to satisfy "disable Play when already playing"
   const handlePlay = async (device: any) => {
-    if (device.status === 'playing') return; // prevent play while already playing
+    const currentStatus = optimisticStatus[device.id] || device.status;
+    if (currentStatus === 'playing') return; // prevent play while already playing
+    
+    // Optimistic update
+    setOptimisticStatus(prev => ({ ...prev, [device.id]: 'playing' }));
+    
     try {
       await commandsApi.send(device.id, 'play', device.streamUrl);
       toast.success('Device playing');
+      setTimeout(() => {
+        setOptimisticStatus(prev => {
+          const next = { ...prev };
+          delete next[device.id];
+          return next;
+        });
+      }, 2000);
     } catch (error) {
+      setOptimisticStatus(prev => {
+        const next = { ...prev };
+        delete next[device.id];
+        return next;
+      });
       console.error('Error starting playback:', error);
       toast.error('Failed to start playback');
     }
   };
 
   const handlePause = async (device: any) => {
-    if (device.status !== 'playing') return; // pause only when playing
+    const currentStatus = optimisticStatus[device.id] || device.status;
+    if (currentStatus !== 'playing') return; // pause only when playing
+    
+    // Optimistic update
+    setOptimisticStatus(prev => ({ ...prev, [device.id]: 'paused' }));
+    
     try {
       await commandsApi.send(device.id, 'pause', device.streamUrl);
       toast.success('Device paused');
+      setTimeout(() => {
+        setOptimisticStatus(prev => {
+          const next = { ...prev };
+          delete next[device.id];
+          return next;
+        });
+      }, 2000);
     } catch (error) {
+      setOptimisticStatus(prev => {
+        const next = { ...prev };
+        delete next[device.id];
+        return next;
+      });
       console.error('Error pausing device:', error);
       toast.error('Failed to pause device');
     }
@@ -603,7 +658,7 @@ const Devices = () => {
                       {device.ipAddress}
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(device.status)}</TableCell>
+                  <TableCell>{getStatusBadge(optimisticStatus[device.id] || device.status)}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatUptime(device.uptime)}
                   </TableCell>
@@ -639,7 +694,7 @@ const Devices = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={device.status === 'playing'}
+                        disabled={(optimisticStatus[device.id] || device.status) === 'playing'}
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePlay(device);
@@ -651,7 +706,7 @@ const Devices = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={device.status !== 'playing'}
+                        disabled={(optimisticStatus[device.id] || device.status) !== 'playing'}
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePause(device);
