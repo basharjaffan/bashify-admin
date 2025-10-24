@@ -35,6 +35,7 @@ const DeviceDetails = () => {
   const [updateStatusText, setUpdateStatusText] = useState<string>('');
   const [updateActive, setUpdateActive] = useState<boolean>(false);
   const [commandLogs, setCommandLogs] = useState<Array<{ id: string; action: string; processed?: boolean; createdAt?: any; progress?: number | null; status?: string | null }>>([]);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (device) {
@@ -120,6 +121,9 @@ const DeviceDetails = () => {
   };
 
   const handlePlay = async () => {
+    // Optimistic update
+    setOptimisticStatus('playing');
+    
     try {
       const url = device.streamUrl || device.currentUrl;
       await Promise.all([
@@ -127,20 +131,29 @@ const DeviceDetails = () => {
         commandsApi.send(device.id, 'resume', url),
       ]);
       toast.success('Device playing');
+      // Rensa efter 2 sekunder
+      setTimeout(() => setOptimisticStatus(null), 2000);
     } catch (error) {
+      setOptimisticStatus(null);
       console.error('Error starting playback:', error);
       toast.error('Failed to start playback');
     }
   };
 
   const handlePause = async () => {
+    // Optimistic update
+    setOptimisticStatus('paused');
+    
     try {
       await Promise.all([
         commandsApi.send(device.id, 'pause', device.streamUrl),
         commandsApi.send(device.id, 'stop', device.streamUrl),
       ]);
       toast.success('Device paused');
+      // Rensa efter 2 sekunder
+      setTimeout(() => setOptimisticStatus(null), 2000);
     } catch (error) {
+      setOptimisticStatus(null);
       console.error('Error pausing device:', error);
       toast.error('Failed to pause device');
     }
@@ -276,8 +289,8 @@ const DeviceDetails = () => {
           <Badge variant={device.status === 'offline' ? 'destructive' : 'success'}>
             {device.status === 'offline' ? 'Offline' : 'Online'}
           </Badge>
-          <Badge variant={device.status === 'playing' ? 'default' : 'outline'}>
-            {device.status === 'playing' ? 'Playing' : 'Not Playing'}
+          <Badge variant={(optimisticStatus || device.status) === 'playing' ? 'default' : 'outline'}>
+            {(optimisticStatus || device.status) === 'playing' ? 'Playing' : 'Not Playing'}
           </Badge>
         </div>
       </div>
@@ -320,11 +333,11 @@ const DeviceDetails = () => {
           <CardContent className="space-y-6">
             {/* Playback Controls */}
             <div className="grid grid-cols-2 gap-3">
-              <Button onClick={handlePlay} className="h-12 text-lg gap-2" variant="default" disabled={device.status === 'playing'}>
+              <Button onClick={handlePlay} className="h-12 text-lg gap-2" variant="default" disabled={(optimisticStatus || device.status) === 'playing'}>
                 <Play className="w-5 h-5" />
                 Play
               </Button>
-              <Button onClick={handlePause} className="h-12 text-lg gap-2" variant="outline" disabled={device.status !== 'playing'}>
+              <Button onClick={handlePause} className="h-12 text-lg gap-2" variant="outline" disabled={(optimisticStatus || device.status) !== 'playing'}>
                 <Pause className="w-5 h-5" />
                 Pause
               </Button>
