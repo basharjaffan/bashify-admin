@@ -12,7 +12,7 @@ import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Progress } from '../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download, Pencil, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { doc, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -36,6 +36,8 @@ const DeviceDetails = () => {
   const [updateActive, setUpdateActive] = useState<boolean>(false);
   const [commandLogs, setCommandLogs] = useState<Array<{ id: string; action: string; processed?: boolean; createdAt?: any; progress?: number | null; status?: string | null }>>([]);
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(device?.name || '');
 
   useEffect(() => {
     if (device) {
@@ -121,6 +123,12 @@ const DeviceDetails = () => {
   };
 
   const handlePlay = async () => {
+    // Check if device has a group assigned
+    if (!device.groupId) {
+      toast.error('No group assigned');
+      return;
+    }
+
     // Optimistic update
     setOptimisticStatus('playing');
     
@@ -180,13 +188,40 @@ const DeviceDetails = () => {
 
   const handleGroupChange = async (groupId: string) => {
     try {
-      await devicesApi.update(device.id, { groupId });
+      const selectedGroup = groups.find(g => g.id === groupId);
+      const streamUrl = selectedGroup?.streamUrl || null;
+      
+      await devicesApi.update(device.id, { 
+        groupId,
+        streamUrl 
+      });
+      
       setSelectedGroupId(groupId);
       toast.success('Group updated');
     } catch (error) {
       console.error('Error updating group:', error);
       toast.error('Failed to update group');
     }
+  };
+
+  const handleNameSave = async () => {
+    if (editedName.trim() && editedName !== device.name) {
+      try {
+        await devicesApi.update(device.id, { name: editedName.trim() });
+        toast.success('Device name updated');
+        setIsEditingName(false);
+      } catch (error) {
+        console.error('Error updating device name:', error);
+        toast.error('Failed to update device name');
+      }
+    } else {
+      setIsEditingName(false);
+    }
+  };
+
+  const handleNameCancel = () => {
+    setEditedName(device.name);
+    setIsEditingName(false);
   };
 
   const handleUpdateSystem = async () => {
@@ -283,7 +318,41 @@ const DeviceDetails = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Activity className="w-12 h-12 text-primary" />
-          <h1 className="text-3xl font-bold">{device.name}</h1>
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                className="text-3xl font-bold h-12"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleNameSave();
+                  if (e.key === 'Escape') handleNameCancel();
+                }}
+              />
+              <Button size="sm" variant="ghost" onClick={handleNameSave}>
+                <Check className="h-5 w-5 text-success" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleNameCancel}>
+                <X className="h-5 w-5 text-destructive" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <h1 className="text-3xl font-bold">{device.name}</h1>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => {
+                  setIsEditingName(true);
+                  setEditedName(device.name);
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={device.status === 'offline' ? 'destructive' : 'success'}>
