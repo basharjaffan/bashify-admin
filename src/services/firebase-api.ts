@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  getDocs,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
@@ -78,6 +79,17 @@ export const groupsApi = {
   },
 
   delete: async (groupId: string) => {
+    // First, update all devices in this group to have null groupId
+    const devicesRef = collection(db, 'config', 'devices', 'list');
+    const devicesSnapshot = await getDocs(devicesRef);
+    
+    const updatePromises = devicesSnapshot.docs
+      .filter(doc => doc.data().groupId === groupId)
+      .map(doc => updateDoc(doc.ref, { groupId: null, group: null }));
+    
+    await Promise.all(updatePromises);
+    
+    // Then delete the group
     const groupRef = doc(db, 'config', 'groups', 'list', groupId);
     await deleteDoc(groupRef);
   }
