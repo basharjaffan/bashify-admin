@@ -169,10 +169,10 @@ const Devices = () => {
   const handleUpdate = async (device: any) => {
     try {
       await commandsApi.send(device.id, 'update');
-      toast.success('Firmware update started...');
+      toast.success('Full update started. Device will restart after update.');
     } catch (error) {
       console.error('Error updating device:', error);
-      toast.error('Failed to update device');
+      toast.error('Failed to start update');
     }
   };
 
@@ -661,7 +661,7 @@ const Devices = () => {
                           e.stopPropagation();
                           handleRestart(device);
                         }}
-                        title="Restart"
+                        title="Restart Device"
                       >
                         <RotateCw className="w-4 h-4" />
                       </Button>
@@ -672,7 +672,7 @@ const Devices = () => {
                           e.stopPropagation();
                           handleUpdate(device);
                         }}
-                        title="Update Firmware"
+                        title="Full Update"
                       >
                         <Download className="w-4 h-4" />
                       </Button>
@@ -684,7 +684,7 @@ const Devices = () => {
                           setDeviceToDelete(device.id);
                           setDeleteDialogOpen(true);
                         }}
-                        title="Delete"
+                        title="Delete Device"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
