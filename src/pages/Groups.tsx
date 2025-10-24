@@ -5,6 +5,7 @@ import { groupsApi, storageApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
@@ -32,7 +33,8 @@ const Groups = () => {
     name: '',
     streamUrl: '',
     announcementInterval: 10,
-    announcementVolume: 100
+    announcementVolume: 100,
+    notes: ''
   });
   const [localFiles, setLocalFiles] = useState<FileList | null>(null);
   const [announcementFiles, setAnnouncementFiles] = useState<FileList | null>(null);
@@ -46,7 +48,8 @@ const Groups = () => {
       
       const groupData: any = {
         name: formData.name,
-        uploadType
+        uploadType,
+        notes: formData.notes || ''
       };
 
       if (uploadType === 'url') {
@@ -70,7 +73,7 @@ const Groups = () => {
       }
 
       setOpen(false);
-      setFormData({ name: '', streamUrl: '', announcementInterval: 10, announcementVolume: 100 });
+      setFormData({ name: '', streamUrl: '', announcementInterval: 10, announcementVolume: 100, notes: '' });
       setLocalFiles(null);
       setUploadType('url');
     } catch (error: any) {
@@ -202,6 +205,17 @@ const Groups = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Add notes about this group..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="min-h-[80px]"
                   />
                 </div>
 

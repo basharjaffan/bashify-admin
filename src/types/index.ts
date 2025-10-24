@@ -42,6 +42,7 @@ export interface Group {
   }>;
   announcementInterval?: number; // in minutes
   announcementVolume?: number; // 0-100
+  notes?: string; // Group notes/description
 }
 
 export interface User {

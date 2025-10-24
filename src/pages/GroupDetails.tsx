@@ -6,12 +6,13 @@ import { groupsApi, devicesApi, commandsApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Skeleton } from '../components/ui/skeleton';
-import { Layers, ArrowLeft, Radio, LinkIcon, Upload, Play, Pause, Volume2, Plus } from 'lucide-react';
+import { Layers, ArrowLeft, Radio, LinkIcon, Upload, Play, Pause, Volume2, Plus, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 const GroupDetails = () => {
@@ -21,6 +22,8 @@ const GroupDetails = () => {
   const { devices, loading: devicesLoading } = useDevices();
   const [editingUrl, setEditingUrl] = useState(false);
   const [streamUrl, setStreamUrl] = useState('');
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notes, setNotes] = useState('');
 
   const group = groups.find(g => g.id === id);
   const groupDevices = devices.filter(d => d.groupId === id);
@@ -30,7 +33,10 @@ const GroupDetails = () => {
     if (group?.streamUrl) {
       setStreamUrl(group.streamUrl);
     }
-  }, [group?.streamUrl]);
+    if (group?.notes) {
+      setNotes(group.notes);
+    }
+  }, [group?.streamUrl, group?.notes]);
 
   const handleUpdateUrl = async () => {
     if (!id) return;
@@ -59,6 +65,18 @@ const GroupDetails = () => {
     } catch (error) {
       console.error('Error updating stream URL:', error);
       toast.error('Failed to update stream URL');
+    }
+  };
+
+  const handleUpdateNotes = async () => {
+    if (!id) return;
+    try {
+      await groupsApi.update(id, { notes });
+      toast.success('Notes updated');
+      setEditingNotes(false);
+    } catch (error) {
+      console.error('Error updating notes:', error);
+      toast.error('Failed to update notes');
     }
   };
 
@@ -215,6 +233,42 @@ const GroupDetails = () => {
               )}
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Notes
+            </Label>
+            {editingNotes ? (
+              <div className="space-y-2">
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add notes about this group..."
+                  className="min-h-[100px]"
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleUpdateNotes}>Save</Button>
+                  <Button variant="outline" onClick={() => {
+                    setNotes(group.notes || '');
+                    setEditingNotes(false);
+                  }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2">
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg flex-1 whitespace-pre-wrap">
+                  {group.notes || 'No notes added'}
+                </div>
+                <Button variant="outline" onClick={() => setEditingNotes(true)}>
+                  Edit
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
