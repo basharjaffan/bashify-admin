@@ -150,12 +150,19 @@ const DeviceDetails = () => {
     setOptimisticStatus('playing');
     
     try {
-      const url = device.streamUrl || device.currentUrl;
-      await Promise.all([
-        commandsApi.send(device.id, 'play', url),
-        commandsApi.send(device.id, 'resume', url),
-      ]);
-      toast.success('Device playing');
+      const groupForDevice = groups.find((g) => g.id === device.groupId);
+      if (groupForDevice?.uploadType === 'local' && groupForDevice?.localFiles && groupForDevice.localFiles.length > 0) {
+        const playlist = groupForDevice.localFiles.map((f) => f.url);
+        await commandsApi.send(device.id, 'playlist', JSON.stringify({ files: playlist, repeat: true }));
+        toast.success(`Playing ${playlist.length} tracks in loop`);
+      } else {
+        const url = device.streamUrl || device.currentUrl;
+        await Promise.all([
+          commandsApi.send(device.id, 'play', url),
+          commandsApi.send(device.id, 'resume', url),
+        ]);
+        toast.success('Device playing');
+      }
       // Rensa efter 2 sekunder
       setTimeout(() => setOptimisticStatus(null), 2000);
     } catch (error) {

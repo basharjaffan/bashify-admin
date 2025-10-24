@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGroups } from '../hooks/useGroups';
 import { useDevices } from '../hooks/useDevices';
-import { groupsApi, devicesApi, commandsApi } from '../services/firebase-api';
+import { groupsApi, devicesApi, commandsApi, storageApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -28,6 +28,7 @@ const GroupDetails = () => {
   const [notes, setNotes] = useState('');
   const [isAddingFiles, setIsAddingFiles] = useState(false);
   const [newLocalFiles, setNewLocalFiles] = useState('');
+  const [localFilesToUpload, setLocalFilesToUpload] = useState<FileList | null>(null);
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
   const [groupDeviceSearchQuery, setGroupDeviceSearchQuery] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -155,22 +156,38 @@ const GroupDetails = () => {
   };
 
   const handleAddLocalFiles = async () => {
-    if (!id || !newLocalFiles.trim()) return;
+    if (!id) return;
     try {
-      const filesArray = newLocalFiles.split('\n').map(f => f.trim()).filter(Boolean);
       const existingFiles = group?.localFiles || [];
-      const newFiles = filesArray.map(fileName => ({
+
+      // Prefer actual file uploads if provided
+      if (localFilesToUpload && localFilesToUpload.length > 0) {
+        const uploadedFiles = await storageApi.uploadGroupFiles(id, localFilesToUpload);
+        const updatedFiles = [...existingFiles, ...uploadedFiles];
+        await groupsApi.update(id, { 
+          localFiles: updatedFiles,
+          uploadType: 'local'
+        });
+        toast.success(`Uppladdat ${uploadedFiles.length} fil(er)`);
+        setLocalFilesToUpload(null);
+        setNewLocalFiles('');
+        setIsAddingFiles(false);
+        return;
+      }
+
+      // Fallback: add by typed file names
+      if (!newLocalFiles.trim()) return;
+      const filesArray = newLocalFiles.split('\n').map((f) => f.trim()).filter(Boolean);
+      const newFiles = filesArray.map((fileName) => ({
         name: fileName,
         url: `/local/${fileName}`,
-        size: 0
+        size: 0,
       }));
       const updatedFiles = [...existingFiles, ...newFiles];
-      
-      await groupsApi.update(id, { 
+      await groupsApi.update(id, {
         localFiles: updatedFiles,
-        uploadType: 'local'
+        uploadType: 'local',
       });
-      
       toast.success(`Added ${filesArray.length} local file(s)`);
       setNewLocalFiles('');
       setIsAddingFiles(false);
@@ -329,27 +346,40 @@ const GroupDetails = () => {
                           </div>
                         </div>
                       )}
-                      
-                      <div className="space-y-2">
-                        <Label>Add New Files (one per line)</Label>
-                        <Textarea
-                          value={newLocalFiles}
-                          onChange={(e) => setNewLocalFiles(e.target.value)}
-                          placeholder="song1.mp3&#10;song2.mp3&#10;podcast.mp3"
-                          className="min-h-[150px] font-mono text-sm"
-                        />
+
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label>Upload New Files</Label>
+                          <Input
+                            type="file"
+                            accept="audio/*"
+                            multiple
+                            onChange={(e) => setLocalFilesToUpload(e.target.files)}
+                          />
+                          <p className="text-xs text-muted-foreground">Du kan ladda upp många låtar samtidigt.</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Or add by file name (one per line)</Label>
+                          <Textarea
+                            value={newLocalFiles}
+                            onChange={(e) => setNewLocalFiles(e.target.value)}
+                            placeholder="song1.mp3&#10;song2.mp3&#10;podcast.mp3"
+                            className="min-h-[120px] font-mono text-sm"
+                          />
+                        </div>
                       </div>
                       
                       <div className="flex gap-2">
                         <Button 
                           onClick={handleAddLocalFiles} 
                           className="flex-1"
-                          disabled={!newLocalFiles.trim()}
+                          disabled={!(localFilesToUpload?.length || newLocalFiles.trim())}
                         >
                           Add Files
                         </Button>
                         <Button variant="outline" onClick={() => {
                           setNewLocalFiles('');
+                          setLocalFilesToUpload(null);
                           setIsAddingFiles(false);
                         }}>
                           Close
