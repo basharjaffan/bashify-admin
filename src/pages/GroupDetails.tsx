@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Skeleton } from '../components/ui/skeleton';
-import { Layers, ArrowLeft, Radio, LinkIcon, Upload, Play, Pause, Volume2, Plus, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Checkbox } from '../components/ui/checkbox';
+import { Layers, ArrowLeft, Radio, LinkIcon, Upload, Play, Pause, Volume2, Plus, FileText, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const GroupDetails = () => {
@@ -24,10 +26,26 @@ const GroupDetails = () => {
   const [streamUrl, setStreamUrl] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isAddingFiles, setIsAddingFiles] = useState(false);
+  const [newLocalFiles, setNewLocalFiles] = useState('');
+  const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
+  const [groupDeviceSearchQuery, setGroupDeviceSearchQuery] = useState('');
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
   const group = groups.find(g => g.id === id);
   const groupDevices = devices.filter(d => d.groupId === id);
   const availableDevices = devices.filter(d => !d.groupId || d.groupId === 'none');
+  
+  // Filter devices based on search
+  const filteredAvailableDevices = availableDevices.filter(d => 
+    d.name.toLowerCase().includes(deviceSearchQuery.toLowerCase()) ||
+    d.ipAddress.toLowerCase().includes(deviceSearchQuery.toLowerCase())
+  );
+  
+  const filteredGroupDevices = groupDevices.filter(d =>
+    d.name.toLowerCase().includes(groupDeviceSearchQuery.toLowerCase()) ||
+    d.ipAddress.toLowerCase().includes(groupDeviceSearchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     if (group?.streamUrl) {
@@ -126,6 +144,59 @@ const GroupDetails = () => {
     }
   };
 
+  const handleAddLocalFiles = async () => {
+    if (!id || !newLocalFiles.trim()) return;
+    try {
+      const filesArray = newLocalFiles.split('\n').map(f => f.trim()).filter(Boolean);
+      const existingFiles = group?.localFiles || [];
+      const newFiles = filesArray.map(fileName => ({
+        name: fileName,
+        url: `/local/${fileName}`,
+        size: 0
+      }));
+      const updatedFiles = [...existingFiles, ...newFiles];
+      
+      await groupsApi.update(id, { 
+        localFiles: updatedFiles,
+        uploadType: 'local'
+      });
+      
+      toast.success(`Added ${filesArray.length} local file(s)`);
+      setNewLocalFiles('');
+      setIsAddingFiles(false);
+    } catch (error) {
+      console.error('Error adding local files:', error);
+      toast.error('Failed to add local files');
+    }
+  };
+
+  const handleAddSelectedDevices = async () => {
+    if (selectedDevices.length === 0) return;
+    try {
+      const promises = selectedDevices.map(deviceId =>
+        devicesApi.update(deviceId, {
+          groupId: id,
+          streamUrl: group?.streamUrl
+        })
+      );
+      await Promise.all(promises);
+      toast.success(`Added ${selectedDevices.length} device(s) to group`);
+      setSelectedDevices([]);
+      setDeviceSearchQuery('');
+    } catch (error) {
+      console.error('Error adding devices:', error);
+      toast.error('Failed to add devices');
+    }
+  };
+
+  const toggleDeviceSelection = (deviceId: string) => {
+    setSelectedDevices(prev =>
+      prev.includes(deviceId)
+        ? prev.filter(id => id !== deviceId)
+        : [...prev, deviceId]
+    );
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
       online: { variant: 'default', label: 'Online' },
@@ -190,13 +261,55 @@ const GroupDetails = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {group.uploadType === 'local' && group.localFiles ? (
-            <div>
-              <Label className="flex items-center gap-2 mb-2">
-                <Upload className="w-4 h-4" />
-                Local Files ({group.localFiles.length})
-              </Label>
-              <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                {group.localFiles.join(', ')}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Local Files ({group.localFiles.length})
+                </Label>
+                <Dialog open={isAddingFiles} onOpenChange={setIsAddingFiles}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add Files
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Local Files</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>File Names (one per line)</Label>
+                        <Textarea
+                          value={newLocalFiles}
+                          onChange={(e) => setNewLocalFiles(e.target.value)}
+                          placeholder="song1.mp3&#10;song2.mp3&#10;podcast.mp3"
+                          className="min-h-[200px] font-mono text-sm"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleAddLocalFiles} className="flex-1">
+                          Add Files
+                        </Button>
+                        <Button variant="outline" onClick={() => {
+                          setNewLocalFiles('');
+                          setIsAddingFiles(false);
+                        }}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="space-y-1 max-h-[200px] overflow-y-auto bg-muted p-3 rounded-lg">
+                {group.localFiles.map((file, idx) => (
+                  <div key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
+                    <FileText className="w-3 h-3 shrink-0" />
+                    {file.name}
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -273,26 +386,83 @@ const GroupDetails = () => {
       </Card>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <h2 className="text-2xl font-bold">Devices in Group</h2>
-          {availableDevices.length > 0 && (
-            <Select onValueChange={handleAddDevice}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Add device to group" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableDevices.map(device => (
-                  <SelectItem key={device.id} value={device.id}>
-                    {device.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <div className="flex items-center gap-2">
+            {groupDeviceSearchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setGroupDeviceSearchQuery('')}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search devices..."
+                value={groupDeviceSearchQuery}
+                onChange={(e) => setGroupDeviceSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
         </div>
 
+        {availableDevices.length > 0 && (
+          <Card className="shadow-card bg-muted/30">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Add Devices to Group</CardTitle>
+                {selectedDevices.length > 0 && (
+                  <Button onClick={handleAddSelectedDevices} size="sm" className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add {selectedDevices.length} Device(s)
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search available devices..."
+                  value={deviceSearchQuery}
+                  onChange={(e) => setDeviceSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {filteredAvailableDevices.length > 0 ? (
+                  filteredAvailableDevices.map(device => (
+                    <div
+                      key={device.id}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedDevices.includes(device.id)}
+                        onCheckedChange={() => toggleDeviceSelection(device.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{device.name}</div>
+                        <div className="text-sm text-muted-foreground">{device.ipAddress}</div>
+                      </div>
+                      {getStatusBadge(device.status)}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {deviceSearchQuery ? 'No devices found' : 'No available devices'}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {groupDevices.map((device) => (
+          {filteredGroupDevices.map((device) => (
             <Card key={device.id} className="shadow-card">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -355,13 +525,15 @@ const GroupDetails = () => {
           ))}
         </div>
 
-        {(!devicesLoading && groupDevices.length === 0) && (
+        {(!devicesLoading && filteredGroupDevices.length === 0) && (
           <Card className="shadow-card">
             <CardContent className="py-16 text-center">
               <Radio className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No devices in group</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                {groupDeviceSearchQuery ? 'No devices found' : 'No devices in group'}
+              </h3>
               <p className="text-muted-foreground mb-6">
-                Add devices to this group to get started
+                {groupDeviceSearchQuery ? 'Try a different search query' : 'Add devices to this group to get started'}
               </p>
             </CardContent>
           </Card>
