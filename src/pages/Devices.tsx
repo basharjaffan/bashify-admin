@@ -158,7 +158,10 @@ const Devices = () => {
 
   const handleRestart = async (device: any) => {
     try {
-      await commandsApi.send(device.id, 'reboot');
+      await Promise.all([
+        commandsApi.send(device.id, 'reboot'),
+        commandsApi.send(device.id, 'restart'),
+      ]);
       toast.success('Device restarting...');
     } catch (error) {
       console.error('Error restarting device:', error);
@@ -168,7 +171,10 @@ const Devices = () => {
 
   const handleUpdate = async (device: any) => {
     try {
-      await commandsApi.send(device.id, 'update');
+      await Promise.all([
+        commandsApi.send(device.id, 'full_update'),
+        commandsApi.send(device.id, 'update'),
+      ]);
       toast.success('Full update started. Device will restart after update.');
     } catch (error) {
       console.error('Error updating device:', error);
