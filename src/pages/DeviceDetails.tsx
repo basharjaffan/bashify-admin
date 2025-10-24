@@ -227,6 +227,34 @@ const DeviceDetails = () => {
         </div>
       </div>
 
+      {/* Update Progress Card */}
+      {device.updateProgress !== undefined && device.updateProgress > 0 && (
+        <Card className="shadow-card border-primary/50 bg-gradient-to-br from-primary/10 to-primary/5">
+          <CardContent className="py-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-primary/20 rounded-full">
+                    <Download className="w-6 h-6 text-primary animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-primary">System Update Pågår</h3>
+                    {device.updateStatus && (
+                      <p className="text-sm text-muted-foreground">{device.updateStatus}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-primary">{device.updateProgress}%</div>
+                  <p className="text-xs text-muted-foreground">Framsteg</p>
+                </div>
+              </div>
+              <Progress value={device.updateProgress} className="h-3" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Device Control */}
@@ -292,25 +320,7 @@ const DeviceDetails = () => {
             {/* System Controls */}
             <div className="space-y-3 pt-4 border-t border-border">
               <Label className="text-sm text-muted-foreground">System Controls</Label>
-              
-              {/* Update Progress */}
-              {device.updateProgress !== undefined && device.updateProgress > 0 && (
-                <div className="space-y-2 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2 text-primary">
-                      <Download className="w-4 h-4 animate-pulse" />
-                      Updating System
-                    </Label>
-                    <span className="text-sm font-bold text-primary">{device.updateProgress}%</span>
-                  </div>
-                  <Progress value={device.updateProgress} className="h-2" />
-                  {device.updateStatus && (
-                    <p className="text-xs text-muted-foreground">{device.updateStatus}</p>
-                  )}
-                </div>
-              )}
-              
-              <Button 
+              <Button
                 onClick={handleUpdateSystem}
                 variant="outline"
                 className="w-full gap-2 border-primary/50 hover:bg-primary/10 text-primary"
