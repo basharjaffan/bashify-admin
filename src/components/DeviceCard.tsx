@@ -3,16 +3,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Wifi, WifiOff, Music, HardDrive, Cpu, MemoryStick, Play, Pause, Volume2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Wifi, WifiOff, Music, HardDrive, Cpu, MemoryStick, Play, Pause, Volume2, Pencil, Check, X } from 'lucide-react';
+import { useState } from 'react';
+import { UpdateStatusBadge } from './UpdateStatusBadge';
 
 interface DeviceCardProps {
   device: Device;
   groupName?: string;
   onPlayPause?: (device: Device) => void;
   onVolumeChange?: (device: Device, volume: number) => void;
+  onGroupChange?: (device: Device, groupId: string) => void;
+  onNameChange?: (device: Device, name: string) => void;
+  groups?: Array<{ id: string; name: string }>;
 }
 
-export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange }: DeviceCardProps) {
+export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange, onGroupChange, onNameChange, groups }: DeviceCardProps) {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(device.name);
+
+  const handleNameSave = () => {
+    if (editedName.trim() && editedName !== device.name && onNameChange) {
+      onNameChange(device, editedName.trim());
+    }
+    setIsEditingName(false);
+  };
+
+  const handleNameCancel = () => {
+    setEditedName(device.name);
+    setIsEditingName(false);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'online': return 'bg-success';
@@ -61,9 +83,42 @@ export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange }: D
               {getStatusIcon(device.status)}
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-lg font-bold truncate group-hover:text-primary transition-colors">
-                {device.name}
-              </CardTitle>
+              {isEditingName && onNameChange ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    className="h-8 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleNameSave();
+                      if (e.key === 'Escape') handleNameCancel();
+                    }}
+                  />
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleNameSave}>
+                    <Check className="h-4 w-4 text-success" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleNameCancel}>
+                    <X className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg font-bold truncate group-hover:text-primary transition-colors">
+                    {device.name}
+                  </CardTitle>
+                  {onNameChange && (
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setIsEditingName(true)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="text-xs text-muted-foreground font-mono mt-1">
                 {device.ipAddress}
               </div>
@@ -84,6 +139,11 @@ export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange }: D
       </CardHeader>
       
       <CardContent className="relative space-y-4 pt-0">
+        {/* Update Status */}
+        {(device.updateProgress || device.updateStatus) && (
+          <UpdateStatusBadge device={device} variant="compact" />
+        )}
+
         {/* Play/Pause & Volume Controls */}
         {onPlayPause && (
           <div className="flex gap-3 p-3 rounded-lg bg-gradient-to-br from-secondary/50 to-secondary/30 border border-border/50">
@@ -148,7 +208,30 @@ export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange }: D
           </div>
 
           {/* Group */}
-          {groupName && (
+          {(onGroupChange && groups) ? (
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-secondary/30 border border-border/30">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                <Music className="h-3 w-3" />
+                Grupp
+              </div>
+              <Select 
+                value={device.groupId || 'none'} 
+                onValueChange={(value) => onGroupChange(device, value === 'none' ? '' : value)}
+              >
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="Välj grupp" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ingen grupp</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : groupName ? (
             <div className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary/30 border border-border/30">
               <Music className="h-4 w-4 text-accent shrink-0" />
               <div className="min-w-0 flex-1">
@@ -156,7 +239,7 @@ export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange }: D
                 <div className="text-xs font-medium truncate">{groupName}</div>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Current Stream */}

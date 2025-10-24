@@ -285,7 +285,7 @@ const Devices = () => {
     }
   };
 
-  const handleBulkAction = async (action: 'play' | 'pause' | 'delete') => {
+  const handleBulkAction = async (action: 'play' | 'pause' | 'restart' | 'update' | 'delete') => {
     if (selectedDevices.size === 0) {
       toast.error('No devices selected');
       return;
@@ -299,6 +299,17 @@ const Devices = () => {
     try {
       const promises = Array.from(selectedDevices).map(deviceId => {
         const device = devices.find(d => d.id === deviceId);
+        if (action === 'restart') {
+          return Promise.all([
+            commandsApi.send(deviceId, 'reboot'),
+            commandsApi.send(deviceId, 'restart'),
+          ]);
+        } else if (action === 'update') {
+          return Promise.all([
+            commandsApi.send(deviceId, 'full_update'),
+            commandsApi.send(deviceId, 'update'),
+          ]);
+        }
         return commandsApi.send(deviceId, action, device?.streamUrl);
       });
       
@@ -460,6 +471,14 @@ const Devices = () => {
                 <DropdownMenuItem onClick={() => handleBulkAction('pause')}>
                   <Pause className="w-4 h-4 mr-2" />
                   Pause Selected
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkAction('restart')}>
+                  <RotateCw className="w-4 h-4 mr-2" />
+                  Restart Selected
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkAction('update')}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Update Selected
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Assign Group</DropdownMenuLabel>

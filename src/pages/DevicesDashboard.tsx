@@ -3,7 +3,7 @@ import { useGroups } from '@/hooks/useGroups';
 import { DeviceCard } from '@/components/DeviceCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw, Radio } from 'lucide-react';
-import { commandsApi } from '@/services/firebase-api';
+import { commandsApi, devicesApi } from '@/services/firebase-api';
 import { toast } from 'sonner';
 import type { Device } from '@/types';
 
@@ -33,6 +33,39 @@ export default function DevicesDashboard() {
     } catch (error) {
       console.error('Error updating volume:', error);
       toast.error('Failed to update volume');
+    }
+  };
+
+  const handleGroupChange = async (device: Device, groupId: string) => {
+    try {
+      const hasGroup = groupId && groupId !== 'none';
+      const selectedGroup = groups.find(g => g.id === groupId);
+      await devicesApi.update(device.id, {
+        groupId: hasGroup ? groupId : undefined,
+        streamUrl: hasGroup ? selectedGroup?.streamUrl : undefined
+      });
+      
+      // Stop current music and start new group music
+      if (hasGroup && selectedGroup?.streamUrl) {
+        await commandsApi.send(device.id, 'stop');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await commandsApi.send(device.id, 'play', selectedGroup.streamUrl);
+      }
+      
+      toast.success('Grupp uppdaterad');
+    } catch (error) {
+      console.error('Error updating device group:', error);
+      toast.error('Kunde inte uppdatera grupp');
+    }
+  };
+
+  const handleNameChange = async (device: Device, name: string) => {
+    try {
+      await devicesApi.update(device.id, { name });
+      toast.success('Namn uppdaterat');
+    } catch (error) {
+      console.error('Error updating device name:', error);
+      toast.error('Kunde inte uppdatera namn');
     }
   };
 
@@ -88,6 +121,9 @@ export default function DevicesDashboard() {
                 groupName={group?.name}
                 onPlayPause={handlePlayPause}
                 onVolumeChange={handleVolumeChange}
+                onGroupChange={handleGroupChange}
+                onNameChange={handleNameChange}
+                groups={groups}
               />
             );
           })}
