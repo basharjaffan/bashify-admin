@@ -10,8 +10,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
+import { Progress } from '../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -291,10 +292,29 @@ const DeviceDetails = () => {
             {/* System Controls */}
             <div className="space-y-3 pt-4 border-t border-border">
               <Label className="text-sm text-muted-foreground">System Controls</Label>
+              
+              {/* Update Progress */}
+              {device.updateProgress !== undefined && device.updateProgress > 0 && (
+                <div className="space-y-2 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2 text-primary">
+                      <Download className="w-4 h-4 animate-pulse" />
+                      Updating System
+                    </Label>
+                    <span className="text-sm font-bold text-primary">{device.updateProgress}%</span>
+                  </div>
+                  <Progress value={device.updateProgress} className="h-2" />
+                  {device.updateStatus && (
+                    <p className="text-xs text-muted-foreground">{device.updateStatus}</p>
+                  )}
+                </div>
+              )}
+              
               <Button 
                 onClick={handleUpdateSystem}
                 variant="outline"
                 className="w-full gap-2 border-primary/50 hover:bg-primary/10 text-primary"
+                disabled={device.updateProgress !== undefined && device.updateProgress > 0}
               >
                 <RefreshCw className="w-4 h-4" />
                 Update System
