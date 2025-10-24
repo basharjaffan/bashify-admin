@@ -14,7 +14,7 @@ import { Slider } from '../components/ui/slider';
 import { Skeleton } from '../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Checkbox } from '../components/ui/checkbox';
-import { Layers, ArrowLeft, Radio, LinkIcon, Upload, Play, Pause, Volume2, Plus, FileText, Search, X } from 'lucide-react';
+import { Layers, ArrowLeft, Radio, LinkIcon, Upload, Play, Pause, Volume2, Plus, FileText, Search, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const GroupDetails = () => {
@@ -170,6 +170,23 @@ const GroupDetails = () => {
     }
   };
 
+  const handleRemoveLocalFile = async (fileIndex: number) => {
+    if (!id) return;
+    try {
+      const existingFiles = group?.localFiles || [];
+      const updatedFiles = existingFiles.filter((_, idx) => idx !== fileIndex);
+      
+      await groupsApi.update(id, { 
+        localFiles: updatedFiles
+      });
+      
+      toast.success('File removed');
+    } catch (error) {
+      console.error('Error removing file:', error);
+      toast.error('Failed to remove file');
+    }
+  };
+
   const handleAddSelectedDevices = async () => {
     if (selectedDevices.length === 0) return;
     try {
@@ -274,29 +291,58 @@ const GroupDetails = () => {
                       Add Files
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl max-h-[80vh]">
                     <DialogHeader>
-                      <DialogTitle>Add Local Files</DialogTitle>
+                      <DialogTitle>Manage Local Files</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 overflow-y-auto">
+                      {group.localFiles && group.localFiles.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Existing Files ({group.localFiles.length})</Label>
+                          <div className="space-y-1 max-h-[200px] overflow-y-auto bg-muted p-3 rounded-lg">
+                            {group.localFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-background rounded hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <FileText className="w-3 h-3 shrink-0" />
+                                  <span className="text-sm truncate">{file.name}</span>
+                                </div>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 shrink-0"
+                                  onClick={() => handleRemoveLocalFile(idx)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="space-y-2">
-                        <Label>File Names (one per line)</Label>
+                        <Label>Add New Files (one per line)</Label>
                         <Textarea
                           value={newLocalFiles}
                           onChange={(e) => setNewLocalFiles(e.target.value)}
                           placeholder="song1.mp3&#10;song2.mp3&#10;podcast.mp3"
-                          className="min-h-[200px] font-mono text-sm"
+                          className="min-h-[150px] font-mono text-sm"
                         />
                       </div>
+                      
                       <div className="flex gap-2">
-                        <Button onClick={handleAddLocalFiles} className="flex-1">
+                        <Button 
+                          onClick={handleAddLocalFiles} 
+                          className="flex-1"
+                          disabled={!newLocalFiles.trim()}
+                        >
                           Add Files
                         </Button>
                         <Button variant="outline" onClick={() => {
                           setNewLocalFiles('');
                           setIsAddingFiles(false);
                         }}>
-                          Cancel
+                          Close
                         </Button>
                       </div>
                     </div>
