@@ -29,12 +29,19 @@ const DeviceDetails = () => {
   const [dns, setDns] = useState(device?.dns || '');
   const [altDns, setAltDns] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState(device?.groupId || '');
+  const [localVolume, setLocalVolume] = useState(device?.volume ?? 50);
 
   useEffect(() => {
     if (device) {
       setSelectedGroupId(device.groupId || '');
     }
   }, [device?.groupId]);
+
+  useEffect(() => {
+    if (typeof device?.volume === 'number') {
+      setLocalVolume(device.volume);
+    }
+  }, [device?.volume]);
 
   if (!device) {
     return (
@@ -70,10 +77,19 @@ const DeviceDetails = () => {
     }
   };
 
-  const handleVolumeChange = async (value: number[]) => {
+  const handleVolumeChange = (value: number[]) => {
+    setLocalVolume(value[0]);
+  };
+
+  const handleVolumeCommit = async (value: number[]) => {
+    const vol = value[0];
     try {
-      await devicesApi.update(device.id, { volume: value[0] });
-      await commandsApi.send(device.id, 'volume', undefined, value[0]);
+      await devicesApi.update(device.id, { volume: vol });
+      await Promise.all([
+        commandsApi.send(device.id, 'volume', undefined, vol),
+        commandsApi.send(device.id, 'set_volume', undefined, vol),
+      ]);
+      toast.success(`Volume updated to ${vol}%`);
     } catch (error) {
       console.error('Error updating volume:', error);
       toast.error('Failed to update volume');
@@ -93,8 +109,11 @@ const DeviceDetails = () => {
 
   const handleUpdateSystem = async () => {
     try {
-      await commandsApi.send(device.id, 'full_update');
-      toast.success('System update initiated');
+      await Promise.all([
+        commandsApi.send(device.id, 'full_update'),
+        commandsApi.send(device.id, 'update'), // compatibility
+      ]);
+      toast.success('Full system update initiated');
     } catch (error) {
       console.error('Error updating system:', error);
       toast.error('Failed to update system');
@@ -225,11 +244,13 @@ const DeviceDetails = () => {
                   <Volume2 className="w-4 h-4" />
                   Volume
                 </Label>
-                <span className="text-sm font-semibold">{device.volume || 50}%</span>
+                <span className="text-sm font-semibold">{localVolume}%</span>
               </div>
               <Slider
-                value={[device.volume || 50]}
+                value={[localVolume]}
                 onValueChange={handleVolumeChange}
+                onValueCommit={handleVolumeCommit}
+                min={0}
                 max={100}
                 step={1}
               />

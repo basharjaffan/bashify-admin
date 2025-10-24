@@ -24,7 +24,11 @@ export default function DevicesDashboard() {
 
   const handleVolumeChange = async (device: Device, volume: number) => {
     try {
-      await commandsApi.send(device.id, 'volume', undefined, volume);
+      // Both update database and send commands for compatibility
+      await Promise.all([
+        commandsApi.send(device.id, 'volume', undefined, volume),
+        commandsApi.send(device.id, 'set_volume', undefined, volume),
+      ]);
       toast.success(`Volume set to ${volume}%`);
     } catch (error) {
       console.error('Error updating volume:', error);
