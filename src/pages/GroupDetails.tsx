@@ -36,11 +36,6 @@ const GroupDetails = () => {
   const groupDevices = devices.filter(d => d.groupId === id);
   const availableDevices = devices.filter(d => !d.groupId || d.groupId === 'none');
   
-  console.log('Group ID:', id);
-  console.log('All devices:', devices.map(d => ({ id: d.id, name: d.name, groupId: d.groupId })));
-  console.log('Group devices count:', groupDevices.length);
-  console.log('Group devices:', groupDevices.map(d => ({ id: d.id, name: d.name })));
-  
   // Filter devices based on search
   const filteredAvailableDevices = availableDevices.filter(d => 
     d.name.toLowerCase().includes(deviceSearchQuery.toLowerCase()) ||

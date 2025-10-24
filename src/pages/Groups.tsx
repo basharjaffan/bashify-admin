@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGroups } from '../hooks/useGroups';
+import { useDevices } from '../hooks/useDevices';
 import { groupsApi, storageApi } from '../services/firebase-api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -22,6 +23,7 @@ const groupNameSchema = z.object({
 const Groups = () => {
   const navigate = useNavigate();
   const { groups, loading } = useGroups();
+  const { devices } = useDevices();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
@@ -301,7 +303,7 @@ const Groups = () => {
                   </div>
                   <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                     <Radio className="w-3 h-3" />
-                    {group.deviceCount || 0} devices
+                    {devices.filter(d => d.groupId === group.id).length} devices
                   </div>
                 </div>
               </div>
