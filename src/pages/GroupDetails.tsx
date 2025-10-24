@@ -349,23 +349,17 @@ const GroupDetails = () => {
 
                       <div className="space-y-3">
                         <div className="space-y-2">
-                          <Label>Upload New Files</Label>
+                          <Label>Upload Audio Files</Label>
                           <Input
                             type="file"
                             accept="audio/*"
                             multiple
                             onChange={(e) => setLocalFilesToUpload(e.target.files)}
+                            className="cursor-pointer"
                           />
-                          <p className="text-xs text-muted-foreground">Du kan ladda upp många låtar samtidigt.</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Or add by file name (one per line)</Label>
-                          <Textarea
-                            value={newLocalFiles}
-                            onChange={(e) => setNewLocalFiles(e.target.value)}
-                            placeholder="song1.mp3&#10;song2.mp3&#10;podcast.mp3"
-                            className="min-h-[120px] font-mono text-sm"
-                          />
+                          <p className="text-xs text-muted-foreground">
+                            Välj en eller flera mp3/wav/audio-filer att ladda upp
+                          </p>
                         </div>
                       </div>
                       
@@ -373,9 +367,9 @@ const GroupDetails = () => {
                         <Button 
                           onClick={handleAddLocalFiles} 
                           className="flex-1"
-                          disabled={!(localFilesToUpload?.length || newLocalFiles.trim())}
+                          disabled={!localFilesToUpload?.length}
                         >
-                          Add Files
+                          Upload Files
                         </Button>
                         <Button variant="outline" onClick={() => {
                           setNewLocalFiles('');
