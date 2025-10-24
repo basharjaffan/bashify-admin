@@ -79,7 +79,28 @@ export const groupsApi = {
   },
 
   delete: async (groupId: string) => {
-    // First, update all devices in this group to have null groupId
+    // First get the group to check for files to delete
+    const groupRef = doc(db, 'config', 'groups', 'list', groupId);
+    const groupSnapshot = await getDocs(query(collection(db, 'config', 'groups', 'list')));
+    const groupData = groupSnapshot.docs.find(d => d.id === groupId)?.data();
+    
+    // Delete files from storage if this is a local upload group
+    if (groupData?.uploadType === 'local' && groupData?.localFiles) {
+      const deletePromises = groupData.localFiles
+        .filter((file: any) => file.url.startsWith('https://')) // Only delete uploaded files
+        .map((file: any) => {
+          try {
+            const filePath = `groups/${groupId}/${file.name}`;
+            return storageApi.deleteFile(filePath);
+          } catch (error) {
+            console.error(`Failed to delete file ${file.name}:`, error);
+            return Promise.resolve(); // Continue even if one file fails
+          }
+        });
+      await Promise.allSettled(deletePromises);
+    }
+    
+    // Update all devices in this group to have null groupId
     const devicesRef = collection(db, 'config', 'devices', 'list');
     const devicesSnapshot = await getDocs(devicesRef);
     
@@ -89,8 +110,7 @@ export const groupsApi = {
     
     await Promise.all(updatePromises);
     
-    // Then delete the group
-    const groupRef = doc(db, 'config', 'groups', 'list', groupId);
+    // Finally delete the group
     await deleteDoc(groupRef);
   }
 };

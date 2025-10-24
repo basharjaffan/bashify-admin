@@ -35,7 +35,7 @@ const GroupDetails = () => {
 
   const group = groups.find(g => g.id === id);
   const groupDevices = devices.filter(d => d.groupId === id);
-  const availableDevices = devices.filter(d => !d.groupId || d.groupId === 'none');
+  const availableDevices = devices.filter(d => !d.groupId || d.groupId === 'none' || d.groupId === 'no group');
   
   // Filter devices based on search
   const filteredAvailableDevices = availableDevices.filter(d => 
