@@ -662,28 +662,6 @@ const Devices = () => {
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRestart(device);
-                        }}
-                        title="Restart Device"
-                      >
-                        <RotateCw className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdate(device);
-                        }}
-                        title="Full Update"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="destructive"
                         onClick={(e) => {
                           e.stopPropagation();
