@@ -14,7 +14,7 @@ import { Progress } from '../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 const DeviceDetails = () => {
@@ -31,6 +31,10 @@ const DeviceDetails = () => {
   const [altDns, setAltDns] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState(device?.groupId || '');
   const [localVolume, setLocalVolume] = useState(device?.volume ?? 50);
+  const [updateProgress, setUpdateProgress] = useState<number | null>(null);
+  const [updateStatusText, setUpdateStatusText] = useState<string>('');
+  const [updateActive, setUpdateActive] = useState<boolean>(false);
+  const [commandLogs, setCommandLogs] = useState<Array<{ id: string; action: string; processed?: boolean; createdAt?: any; progress?: number | null; status?: string | null }>>([]);
 
   useEffect(() => {
     if (device) {
@@ -43,6 +47,54 @@ const DeviceDetails = () => {
       setLocalVolume(device.volume);
     }
   }, [device?.volume]);
+
+  // Live update from device document (optional fields updateProgress/updateStatus)
+  useEffect(() => {
+    if (!id) return;
+    const unsub = onSnapshot(doc(db, 'config', 'devices', 'list', id), (snap) => {
+      const data: any = snap.data();
+      if (!data) return;
+      const p = typeof data.updateProgress === 'number' ? data.updateProgress : null;
+      const s = data.updateStatus || '';
+      if (p !== null) setUpdateProgress(p);
+      if (s) setUpdateStatusText(s);
+    });
+    return () => unsub();
+  }, [id]);
+
+  // Listen to device commands to infer update activity/progress
+  useEffect(() => {
+    if (!id) return;
+    const commandsRef = collection(db, 'config', 'devices', 'list', id, 'commands');
+    const q = query(commandsRef, orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map((d) => {
+        const data: any = d.data();
+        const prog = data.progress ?? data.percent ?? data.updateProgress ?? null;
+        return {
+          id: d.id,
+          action: data.action,
+          processed: data.processed,
+          createdAt: data.createdAt,
+          progress: typeof prog === 'number' ? prog : null,
+          status: data.status || data.message || null,
+        };
+      });
+      setCommandLogs(items);
+      const active = items.find((i) =>
+        (i.action === 'full_update' || i.action === 'update' || i.action === 'update_progress') &&
+        (i.processed === false || (i.progress !== null && i.progress < 100))
+      );
+      setUpdateActive(!!active);
+      if (active?.progress !== undefined && active.progress !== null) {
+        setUpdateProgress(active.progress);
+      }
+      if (active?.status) {
+        setUpdateStatusText(active.status);
+      }
+    });
+    return () => unsub();
+  }, [id]);
 
   if (!device) {
     return (
@@ -126,6 +178,9 @@ const DeviceDetails = () => {
 
   const handleUpdateSystem = async () => {
     try {
+      setUpdateActive(true);
+      setUpdateProgress(0);
+      setUpdateStatusText('Startar uppdatering...');
       await Promise.all([
         commandsApi.send(device.id, 'full_update'),
         commandsApi.send(device.id, 'update'), // compatibility
@@ -134,9 +189,9 @@ const DeviceDetails = () => {
     } catch (error) {
       console.error('Error updating system:', error);
       toast.error('Failed to update system');
+      setUpdateActive(false);
     }
   };
-
   const handleRestart = async () => {
     try {
       await Promise.all([
@@ -227,33 +282,30 @@ const DeviceDetails = () => {
         </div>
       </div>
 
-      {/* Update Progress Card */}
-      {device.updateProgress !== undefined && device.updateProgress > 0 && (
-        <Card className="shadow-card border-primary/50 bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardContent className="py-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary/20 rounded-full">
-                    <Download className="w-6 h-6 text-primary animate-pulse" />
+        {(updateActive || (updateProgress !== null && updateProgress > 0)) && (
+          <Card className="shadow-card border-primary/50 bg-gradient-to-br from-primary/10 to-primary/5">
+            <CardContent className="py-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-primary/20 rounded-full">
+                      <Download className="w-6 h-6 text-primary animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-primary">System Update Pågår</h3>
+                      <p className="text-sm text-muted-foreground">{updateStatusText || 'Väntar på enhetsrespons...'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-primary">System Update Pågår</h3>
-                    {device.updateStatus && (
-                      <p className="text-sm text-muted-foreground">{device.updateStatus}</p>
-                    )}
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-primary">{updateProgress ?? 0}%</div>
+                    <p className="text-xs text-muted-foreground">Framsteg</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-primary">{device.updateProgress}%</div>
-                  <p className="text-xs text-muted-foreground">Framsteg</p>
-                </div>
+                <Progress value={updateProgress ?? 0} className="h-3" />
               </div>
-              <Progress value={device.updateProgress} className="h-3" />
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -324,7 +376,7 @@ const DeviceDetails = () => {
                 onClick={handleUpdateSystem}
                 variant="outline"
                 className="w-full gap-2 border-primary/50 hover:bg-primary/10 text-primary"
-                disabled={device.updateProgress !== undefined && device.updateProgress > 0}
+                disabled={updateActive}
               >
                 <RefreshCw className="w-4 h-4" />
                 Update System
