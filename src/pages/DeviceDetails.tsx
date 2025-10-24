@@ -88,16 +88,33 @@ const DeviceDetails = () => {
         (i.action === 'full_update' || i.action === 'update' || i.action === 'update_progress') &&
         (i.processed === false || (i.progress !== null && i.progress < 100))
       );
-      setUpdateActive(!!active);
-      if (active?.progress !== undefined && active.progress !== null) {
-        setUpdateProgress(active.progress);
-      }
-      if (active?.status) {
-        setUpdateStatusText(active.status);
+      
+      // Only set updateActive to false if we find a processed update command
+      // This prevents premature closing when update is just initiated
+      if (active) {
+        setUpdateActive(true);
+        if (active?.progress !== undefined && active.progress !== null) {
+          setUpdateProgress(active.progress);
+        }
+        if (active?.status) {
+          setUpdateStatusText(active.status);
+        }
+      } else {
+        // Check if there's a recently processed update command
+        const recentProcessed = items.find((i) =>
+          (i.action === 'full_update' || i.action === 'update') &&
+          i.processed === true
+        );
+        // Only close if we had an active update and now it's processed
+        if (recentProcessed && updateActive) {
+          setUpdateActive(false);
+          setUpdateProgress(100);
+          setUpdateStatusText('Uppdatering slutförd');
+        }
       }
     });
     return () => unsub();
-  }, [id]);
+  }, [id, updateActive]);
 
   if (!device) {
     return (
