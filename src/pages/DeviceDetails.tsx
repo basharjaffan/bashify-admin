@@ -12,7 +12,7 @@ import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Progress } from '../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download, Pencil, Check, X } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download, Pencil, Check, X, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { doc, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -389,25 +389,65 @@ const DeviceDetails = () => {
       </div>
 
         {(updateActive || (updateProgress !== null && updateProgress > 0)) && (
-          <Card className="shadow-card border-primary/50 bg-gradient-to-br from-primary/10 to-primary/5">
-            <CardContent className="py-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/20 rounded-full">
-                      <Download className="w-6 h-6 text-primary animate-pulse" />
+          <Card className="relative overflow-hidden border-primary shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 animate-pulse" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/80 to-primary overflow-hidden">
+              <div className="h-full w-1/3 bg-white/30 animate-[shimmer_2s_infinite]" />
+            </div>
+            <CardContent className="relative py-8">
+              <div className="space-y-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
+                      <div className="relative p-4 bg-gradient-to-br from-primary to-primary/80 rounded-full shadow-lg">
+                        <Download className="w-8 h-8 text-primary-foreground animate-bounce" />
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-primary">System Update Pågår</h3>
-                      <p className="text-sm text-muted-foreground">{updateStatusText || 'Väntar på enhetsrespons...'}</p>
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                          Systemuppdatering pågår
+                        </h3>
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 bg-primary rounded-full animate-[ping_1s_ease-in-out_infinite]" />
+                          <span className="w-2 h-2 bg-primary rounded-full animate-[ping_1s_ease-in-out_0.2s_infinite]" />
+                          <span className="w-2 h-2 bg-primary rounded-full animate-[ping_1s_ease-in-out_0.4s_infinite]" />
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground font-medium">
+                        {updateStatusText || 'Förbereder uppdatering...'}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-primary">{updateProgress ?? 0}%</div>
-                    <p className="text-xs text-muted-foreground">Framsteg</p>
+                  <div className="text-right space-y-1">
+                    <div className="text-4xl font-bold bg-gradient-to-br from-primary via-primary to-primary/70 bg-clip-text text-transparent">
+                      {updateProgress ?? 0}%
+                    </div>
+                    <Badge variant="secondary" className="text-xs font-semibold">
+                      <Activity className="w-3 h-3 mr-1" />
+                      Aktiv
+                    </Badge>
                   </div>
                 </div>
-                <Progress value={updateProgress ?? 0} className="h-3" />
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Framsteg</span>
+                    <span>{updateProgress ?? 0} av 100</span>
+                  </div>
+                  <div className="relative">
+                    <Progress value={updateProgress ?? 0} className="h-4 shadow-inner" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite] pointer-events-none" />
+                  </div>
+                </div>
+
+                {(updateProgress ?? 0) > 75 && (
+                  <div className="flex items-center gap-2 text-sm text-primary animate-fade-in">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="font-medium">Snart klar! Enheten startar om automatiskt...</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
