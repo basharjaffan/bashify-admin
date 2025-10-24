@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Checkbox } from '../components/ui/checkbox';
-import { Radio, Plus, Play, Pause, Trash2, MoreVertical, Pencil, Activity } from 'lucide-react';
+import { Radio, Plus, Play, Pause, Trash2, MoreVertical, Pencil, Activity, RotateCw, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -153,6 +153,26 @@ const Devices = () => {
     } catch (error) {
       console.error('Error pausing device:', error);
       toast.error('Failed to pause device');
+    }
+  };
+
+  const handleRestart = async (device: any) => {
+    try {
+      await commandsApi.send(device.id, 'reboot');
+      toast.success('Device restarting...');
+    } catch (error) {
+      console.error('Error restarting device:', error);
+      toast.error('Failed to restart device');
+    }
+  };
+
+  const handleUpdate = async (device: any) => {
+    try {
+      await commandsApi.send(device.id, 'update');
+      toast.success('Full update started. Device will restart after update.');
+    } catch (error) {
+      console.error('Error updating device:', error);
+      toast.error('Failed to start update');
     }
   };
 
@@ -618,6 +638,7 @@ const Devices = () => {
                           e.stopPropagation();
                           handlePlay(device);
                         }}
+                        title="Play"
                       >
                         <Play className="w-4 h-4" />
                       </Button>
@@ -629,8 +650,31 @@ const Devices = () => {
                           e.stopPropagation();
                           handlePause(device);
                         }}
+                        title="Pause"
                       >
                         <Pause className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRestart(device);
+                        }}
+                        title="Restart Device"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdate(device);
+                        }}
+                        title="Full Update"
+                      >
+                        <Download className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -640,6 +684,7 @@ const Devices = () => {
                           setDeviceToDelete(device.id);
                           setDeleteDialogOpen(true);
                         }}
+                        title="Delete Device"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
