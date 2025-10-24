@@ -66,14 +66,30 @@ const DeviceDetails = () => {
     return 'Not Playing';
   };
 
-  const handlePlayPause = async () => {
-    const action = device.status === 'playing' ? 'pause' : 'play';
+  const handlePlay = async () => {
     try {
-      await commandsApi.send(device.id, action, device.streamUrl);
-      toast.success(`Device ${action === 'play' ? 'playing' : 'paused'}`);
+      const url = device.streamUrl || device.currentUrl;
+      await Promise.all([
+        commandsApi.send(device.id, 'play', url),
+        commandsApi.send(device.id, 'resume', url),
+      ]);
+      toast.success('Device playing');
     } catch (error) {
-      console.error('Error controlling device:', error);
-      toast.error('Failed to control device');
+      console.error('Error starting playback:', error);
+      toast.error('Failed to start playback');
+    }
+  };
+
+  const handlePause = async () => {
+    try {
+      await Promise.all([
+        commandsApi.send(device.id, 'pause', device.streamUrl),
+        commandsApi.send(device.id, 'stop', device.streamUrl),
+      ]);
+      toast.success('Device paused');
+    } catch (error) {
+      console.error('Error pausing device:', error);
+      toast.error('Failed to pause device');
     }
   };
 
@@ -122,7 +138,10 @@ const DeviceDetails = () => {
 
   const handleRestart = async () => {
     try {
-      await commandsApi.send(device.id, 'reboot');
+      await Promise.all([
+        commandsApi.send(device.id, 'reboot'),
+        commandsApi.send(device.id, 'restart'),
+      ]);
       toast.success('Device is restarting...');
     } catch (error) {
       console.error('Error restarting device:', error);
@@ -218,24 +237,17 @@ const DeviceDetails = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Play/Pause Button */}
-            <Button 
-              onClick={handlePlayPause}
-              className="w-full h-12 text-lg gap-2"
-              variant={device.status === 'playing' ? 'default' : 'outline'}
-            >
-              {device.status === 'playing' ? (
-                <>
-                  <Pause className="w-5 h-5" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5" />
-                  Play
-                </>
-              )}
-            </Button>
+            {/* Playback Controls */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button onClick={handlePlay} className="h-12 text-lg gap-2" variant="default" disabled={device.status === 'playing'}>
+                <Play className="w-5 h-5" />
+                Play
+              </Button>
+              <Button onClick={handlePause} className="h-12 text-lg gap-2" variant="outline" disabled={device.status !== 'playing'}>
+                <Pause className="w-5 h-5" />
+                Pause
+              </Button>
+            </div>
 
             {/* Volume Control */}
             <div className="space-y-2">
