@@ -85,7 +85,7 @@ export const groupsApi = {
     
     const updatePromises = devicesSnapshot.docs
       .filter(doc => doc.data().groupId === groupId)
-      .map(doc => updateDoc(doc.ref, { groupId: null, group: null }));
+      .map(doc => updateDoc(doc.ref, { groupId: null, group: null, streamUrl: null }));
     
     await Promise.all(updatePromises);
     
