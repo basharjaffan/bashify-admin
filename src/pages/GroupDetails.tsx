@@ -36,6 +36,11 @@ const GroupDetails = () => {
   const groupDevices = devices.filter(d => d.groupId === id);
   const availableDevices = devices.filter(d => !d.groupId || d.groupId === 'none');
   
+  console.log('Group ID:', id);
+  console.log('All devices:', devices.map(d => ({ id: d.id, name: d.name, groupId: d.groupId })));
+  console.log('Group devices count:', groupDevices.length);
+  console.log('Group devices:', groupDevices.map(d => ({ id: d.id, name: d.name })));
+  
   // Filter devices based on search
   const filteredAvailableDevices = availableDevices.filter(d => 
     d.name.toLowerCase().includes(deviceSearchQuery.toLowerCase()) ||
@@ -127,8 +132,18 @@ const GroupDetails = () => {
   const handlePlayPause = async (device: any) => {
     const action = device.status === 'playing' ? 'pause' : 'play';
     try {
-      await commandsApi.send(device.id, action, device.streamUrl);
-      toast.success(`Device ${action === 'play' ? 'playing' : 'paused'}`);
+      if (action === 'play' && group?.uploadType === 'local' && group?.localFiles && group.localFiles.length > 0) {
+        // For local files, send playlist to device
+        const playlist = group.localFiles.map(f => f.url);
+        await commandsApi.send(device.id, 'playlist', JSON.stringify({
+          files: playlist,
+          repeat: true
+        }));
+        toast.success('Playing playlist');
+      } else {
+        await commandsApi.send(device.id, action, device.streamUrl);
+        toast.success(`Device ${action === 'play' ? 'playing' : 'paused'}`);
+      }
     } catch (error) {
       console.error('Error controlling device:', error);
       toast.error('Failed to control device');
