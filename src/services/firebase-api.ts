@@ -119,12 +119,11 @@ export const usersApi = {
 // Commands API
 export const commandsApi = {
   send: async (deviceId: string, action: string | { action: string; ssid?: string; password?: string }, streamUrl?: string, volume?: number) => {
-    const commandsRef = collection(db, 'config', 'commands', 'list');
-    
+    const commandsRef = collection(db, 'config', 'devices', 'list', deviceId, 'commands');
+
     // Handle both string actions and object actions (for WiFi commands)
     if (typeof action === 'object') {
       await addDoc(commandsRef, {
-        deviceId,
         action: action.action,
         ssid: action.ssid || null,
         password: action.password || null,
@@ -135,7 +134,6 @@ export const commandsApi = {
       });
     } else {
       await addDoc(commandsRef, {
-        deviceId,
         action,
         streamUrl: streamUrl || null,
         volume: volume || null,
