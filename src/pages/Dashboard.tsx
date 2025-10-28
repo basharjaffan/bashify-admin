@@ -4,7 +4,7 @@ import { useDevices } from '../hooks/useDevices';
 import { useGroups } from '../hooks/useGroups';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Radio, Layers, Activity, Users, Play, Circle, CheckCircle2, XCircle, Zap } from 'lucide-react';
+import { Radio, Layers, Activity, Users, Play, Circle, CheckCircle2, XCircle, Zap, Pause } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart';
 
@@ -199,43 +199,52 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Activity Chart */}
+      {/* Status Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Activity (Last 7 Days)</CardTitle>
+          <CardTitle>Device Status Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={activityData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="deviceEvents" 
-                stroke="hsl(217, 91%, 60%)" 
-                strokeWidth={2}
-                name="Device Events"
-                dot={{ fill: 'hsl(217, 91%, 60%)', r: 4 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="playbackEvents" 
-                stroke="hsl(var(--primary))" 
-                strokeWidth={2}
-                name="Playback Events"
-                dot={{ fill: 'hsl(var(--primary))', r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Playing */}
+            <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
+              <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
+                <Play className="w-8 h-8 text-green-500 fill-green-500" />
+              </div>
+              <div className="text-5xl font-bold text-green-500 mb-2">
+                {devices.filter(d => d.status === 'playing').length}
+              </div>
+              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Playing
+              </div>
+            </div>
+
+            {/* Paused */}
+            <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border border-yellow-500/20">
+              <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4">
+                <Pause className="w-8 h-8 text-yellow-500" />
+              </div>
+              <div className="text-5xl font-bold text-yellow-500 mb-2">
+                {devices.filter(d => d.status === 'paused').length}
+              </div>
+              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Paused
+              </div>
+            </div>
+
+            {/* Offline */}
+            <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-gradient-to-br from-red-500/10 to-red-500/5 border border-red-500/20">
+              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+                <XCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <div className="text-5xl font-bold text-red-500 mb-2">
+                {offlineDevices}
+              </div>
+              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Offline
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
