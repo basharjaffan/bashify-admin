@@ -13,8 +13,19 @@ export default function DevicesDashboard() {
 
   const handlePlayPause = async (device: Device) => {
     const action = device.status === 'playing' ? 'pause' : 'play';
+    const urlToSend = device.streamUrl || device.currentUrl || null;
+    
+    console.log('🎮 Dashboard Play/Pause:', { 
+      action, 
+      deviceId: device.id, 
+      status: device.status,
+      streamUrl: device.streamUrl,
+      currentUrl: device.currentUrl,
+      urlToSend 
+    });
+    
     try {
-      await commandsApi.send(device.id, action, device.streamUrl);
+      await commandsApi.send(device.id, action, urlToSend);
       toast.success(`Device ${action === 'play' ? 'playing' : 'paused'}`);
     } catch (error) {
       console.error('Error controlling device:', error);

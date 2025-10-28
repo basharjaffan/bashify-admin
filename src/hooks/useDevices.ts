@@ -46,6 +46,7 @@ export function useDevices() {
             status: deviceStatus,
             volume: data.volume || 50,
             currentUrl: data.currentUrl,
+            streamUrl: data.streamUrl,
             groupId: data.groupId || data.group,
             group: data.group,
             lastSeen: lastSeen,

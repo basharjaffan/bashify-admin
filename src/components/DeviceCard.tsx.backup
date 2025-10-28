@@ -150,10 +150,7 @@ export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange, onG
             {device.status === 'playing' ? (
               <Button
                 size="sm"
-                onClick={() => {
-                  console.log('🎮 Play/Pause clicked!', { device: device.id, onPlayPause: !!onPlayPause, status: device.status });
-                  onPlayPause?.(device);
-                }}
+                onClick={() => onPlayPause(device)}
                 className="gap-2 bg-gradient-to-r from-destructive to-destructive/80 hover:from-destructive/90 hover:to-destructive/70 shadow-sm shrink-0"
                 variant="default"
               >
@@ -163,10 +160,7 @@ export function DeviceCard({ device, groupName, onPlayPause, onVolumeChange, onG
             ) : (
               <Button
                 size="sm"
-                onClick={() => {
-                  console.log('🎮 Play/Pause clicked!', { device: device.id, onPlayPause: !!onPlayPause, status: device.status });
-                  onPlayPause?.(device);
-                }}
+                onClick={() => onPlayPause(device)}
                 className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-glow shrink-0"
               >
                 <Play className="h-4 w-4" />

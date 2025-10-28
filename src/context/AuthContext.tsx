@@ -5,7 +5,9 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 
 interface AuthContextType {
@@ -30,7 +32,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    getRedirectResult(auth).catch((error) => {
+      console.error('Redirect error:', error);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // ✅ VALIDERA DOMÄN HÄR - Nu med flera tillåtna domäner
+      if (user && user.email) {
+        const allowedDomains = ['uropenn.se', 'jetaime.se'];
+        const userDomain = user.email.split('@')[1];
+        
+        if (!allowedDomains.includes(userDomain)) {
+          console.error('Unauthorized domain:', userDomain);
+          signOut(auth);
+          alert(`Endast användare från @uropenn.se och @jetaime.se kan logga in`);
+          setCurrentUser(null);
+          setLoading(false);
+          return;
+        }
+      }
+      
       setCurrentUser(user);
       setLoading(false);
     });
@@ -40,7 +61,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    provider.setCustomParameters({
+      prompt: 'select_account',
+      // ✅ BEGRÄNSA TILL DIN DOMÄN
+      hd: 'uropenn.se'
+    });
+
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      if (error.code === 'auth/popup-blocked' || 
+          error.code === 'auth/popup-closed-by-user' ||
+          error.code === 'auth/cancelled-popup-request') {
+        console.log('Popup blocked, trying redirect...');
+        await signInWithRedirect(auth, provider);
+      } else {
+        throw error;
+      }
+    }
   };
 
   const logout = async () => {

@@ -132,7 +132,17 @@ const Devices = () => {
     setOptimisticStatus(prev => ({ ...prev, [device.id]: newStatus }));
     
     try {
-      await commandsApi.send(device.id, action, device.streamUrl);
+      console.log('🔍 Device data:', { 
+        id: device.id, 
+        streamUrl: device.streamUrl, 
+        currentUrl: device.currentUrl,
+        groupId: device.groupId,
+        status: device.status 
+      });
+      // Use streamUrl or currentUrl or null
+      const urlToSend = device.streamUrl || device.currentUrl || null;
+      console.log('🔍 Sending command:', { action, url: urlToSend });
+      await commandsApi.send(device.id, action, urlToSend);
       toast.success(`Device ${action === 'play' ? 'playing' : 'paused'}`);
       // Rensa optimistic status efter 2 sekunder (Firebase ska ha uppdaterat då)
       setTimeout(() => {
