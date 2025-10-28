@@ -199,55 +199,6 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Status Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Device Status Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Playing */}
-            <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
-              <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                <Play className="w-8 h-8 text-green-500 fill-green-500" />
-              </div>
-              <div className="text-5xl font-bold text-green-500 mb-2">
-                {devices.filter(d => d.status === 'playing').length}
-              </div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Playing
-              </div>
-            </div>
-
-            {/* Paused */}
-            <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border border-yellow-500/20">
-              <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4">
-                <Pause className="w-8 h-8 text-yellow-500" />
-              </div>
-              <div className="text-5xl font-bold text-yellow-500 mb-2">
-                {devices.filter(d => d.status === 'paused').length}
-              </div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Paused
-              </div>
-            </div>
-
-            {/* Offline */}
-            <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-gradient-to-br from-red-500/10 to-red-500/5 border border-red-500/20">
-              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
-                <XCircle className="w-8 h-8 text-red-500" />
-              </div>
-              <div className="text-5xl font-bold text-red-500 mb-2">
-                {offlineDevices}
-              </div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Offline
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* System Health & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* System Health */}
