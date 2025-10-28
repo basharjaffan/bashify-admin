@@ -105,10 +105,6 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="text-center text-xs text-muted-foreground">
-            <p>Only users from authorized domains</p>
-            <p className="mt-1 font-mono text-primary/70">@uropenn.se • @jetaime.se</p>
-          </div>
         </CardContent>
       </Card>
     </div>
