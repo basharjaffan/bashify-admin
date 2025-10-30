@@ -53,10 +53,12 @@ export function useDevices() {
             uptime: data.uptime,
             firmwareVersion: data.firmwareVersion,
             wifiConnected: data.wifiConnected,
+            wifiSSID: data.wifiSSID || 'N/A',
             ethernetConnected: data.ethernetConnected,
             cpuUsage: data.cpuUsage,
             memoryUsage: data.memoryUsage,
             diskUsage: data.diskUsage,
+            dns: data.dns,
           });
         });
         
