@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { 
   signOut, 
   onAuthStateChanged,
@@ -15,6 +16,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,14 +32,14 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     getRedirectResult(auth).catch((error) => {
       console.error('Redirect error:', error);
     });
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // ✅ VALIDERA DOMÄN HÄR - Nu med flera tillåtna domäner
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.email) {
         const allowedDomains = ['uropenn.se', 'jetaime.se'];
         const userDomain = user.email.split('@')[1];
@@ -45,11 +47,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!allowedDomains.includes(userDomain)) {
           console.error('Unauthorized domain:', userDomain);
           signOut(auth);
-          alert(`Endast användare från @uropenn.se och @jetaime.se kan logga in`);
+          alert(`Endast användare från @uropenn.se eller @jetaime.se kan logga in`);
           setCurrentUser(null);
+          setIsAdmin(false);
           setLoading(false);
           return;
         }
+        
+        // Kolla admin-status EN gång vid inloggning och cacha
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userData = userDoc.data();
+          setIsAdmin(userData?.isAdmin === true);
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
       }
       
       setCurrentUser(user);
@@ -62,9 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
-      prompt: 'select_account',
-      // ✅ BEGRÄNSA TILL DIN DOMÄN
-      hd: 'uropenn.se'
+      prompt: 'select_account'
     });
 
     try {
@@ -82,6 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    setIsAdmin(false);
     await signOut(auth);
   };
 
@@ -89,7 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     currentUser,
     loginWithGoogle,
     logout,
-    loading
+    loading,
+    isAdmin
   };
 
   return (
