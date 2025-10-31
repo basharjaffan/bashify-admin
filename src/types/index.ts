@@ -24,6 +24,8 @@ export interface Device {
   diskUsage?: number;
   updateProgress?: number;
   updateStatus?: string;
+  restartProgress?: number;
+  restartStatus?: string;
 }
 
 export interface Group {

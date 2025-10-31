@@ -12,10 +12,11 @@ import { Badge } from '../components/ui/badge';
 import { Slider } from '../components/ui/slider';
 import { Progress } from '../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download, Pencil, Check, X, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Pencil, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { doc, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { OperationStatusCard } from '../components/OperationStatusCard';
 
 const DeviceDetails = () => {
   const { id } = useParams();
@@ -31,9 +32,12 @@ const DeviceDetails = () => {
   const [altDns, setAltDns] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState(device?.groupId || '');
   const [localVolume, setLocalVolume] = useState(device?.volume ?? 50);
-  const [updateProgress, setUpdateProgress] = useState<number | null>(null);
+  const [updateProgress, setUpdateProgress] = useState<number>(0);
   const [updateStatusText, setUpdateStatusText] = useState<string>('');
   const [updateActive, setUpdateActive] = useState<boolean>(false);
+  const [restartProgress, setRestartProgress] = useState<number>(0);
+  const [restartStatusText, setRestartStatusText] = useState<string>('');
+  const [restartActive, setRestartActive] = useState<boolean>(false);
   const [commandLogs, setCommandLogs] = useState<Array<{ id: string; action: string; processed?: boolean; createdAt?: any; progress?: number | null; status?: string | null }>>([]);
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -51,21 +55,29 @@ const DeviceDetails = () => {
     }
   }, [device?.volume]);
 
-  // Live update from device document (optional fields updateProgress/updateStatus)
+  // Live update from device document (updateProgress/updateStatus and restartProgress/restartStatus)
   useEffect(() => {
     if (!id) return;
     const unsub = onSnapshot(doc(db, 'config', 'devices', 'list', id), (snap) => {
       const data: any = snap.data();
       if (!data) return;
-      const p = typeof data.updateProgress === 'number' ? data.updateProgress : null;
-      const s = data.updateStatus || '';
-      if (p !== null) setUpdateProgress(p);
-      if (s) setUpdateStatusText(s);
+      
+      // Update progress
+      const up = typeof data.updateProgress === 'number' ? data.updateProgress : 0;
+      const us = data.updateStatus || '';
+      setUpdateProgress(up);
+      if (us) setUpdateStatusText(us);
+      
+      // Restart progress
+      const rp = typeof data.restartProgress === 'number' ? data.restartProgress : 0;
+      const rs = data.restartStatus || '';
+      setRestartProgress(rp);
+      if (rs) setRestartStatusText(rs);
     });
     return () => unsub();
   }, [id]);
 
-  // Listen to device commands to infer update activity/progress
+  // Listen to device commands to infer update/restart activity/progress
   useEffect(() => {
     if (!id) return;
     const commandsRef = collection(db, 'config', 'devices', 'list', id, 'commands');
@@ -84,37 +96,61 @@ const DeviceDetails = () => {
         };
       });
       setCommandLogs(items);
-      const active = items.find((i) =>
+      
+      // Check for active update
+      const activeUpdate = items.find((i) =>
         (i.action === 'full_update' || i.action === 'update' || i.action === 'update_progress') &&
         (i.processed === false || (i.progress !== null && i.progress < 100))
       );
       
-      // Only set updateActive to false if we find a processed update command
-      // This prevents premature closing when update is just initiated
-      if (active) {
+      if (activeUpdate) {
         setUpdateActive(true);
-        if (active?.progress !== undefined && active.progress !== null) {
-          setUpdateProgress(active.progress);
+        if (activeUpdate?.progress !== undefined && activeUpdate.progress !== null) {
+          setUpdateProgress(activeUpdate.progress);
         }
-        if (active?.status) {
-          setUpdateStatusText(active.status);
+        if (activeUpdate?.status) {
+          setUpdateStatusText(activeUpdate.status);
         }
       } else {
-        // Check if there's a recently processed update command
         const recentProcessed = items.find((i) =>
           (i.action === 'full_update' || i.action === 'update') &&
           i.processed === true
         );
-        // Only close if we had an active update and now it's processed
         if (recentProcessed && updateActive) {
           setUpdateActive(false);
           setUpdateProgress(100);
           setUpdateStatusText('Uppdatering slutförd');
         }
       }
+      
+      // Check for active restart
+      const activeRestart = items.find((i) =>
+        (i.action === 'reboot' || i.action === 'restart' || i.action === 'restart_progress') &&
+        (i.processed === false || (i.progress !== null && i.progress < 100))
+      );
+      
+      if (activeRestart) {
+        setRestartActive(true);
+        if (activeRestart?.progress !== undefined && activeRestart.progress !== null) {
+          setRestartProgress(activeRestart.progress);
+        }
+        if (activeRestart?.status) {
+          setRestartStatusText(activeRestart.status);
+        }
+      } else {
+        const recentRestartProcessed = items.find((i) =>
+          (i.action === 'reboot' || i.action === 'restart') &&
+          i.processed === true
+        );
+        if (recentRestartProcessed && restartActive) {
+          setRestartActive(false);
+          setRestartProgress(100);
+          setRestartStatusText('Omstart slutförd');
+        }
+      }
     });
     return () => unsub();
-  }, [id, updateActive]);
+  }, [id, updateActive, restartActive]);
 
   if (!device) {
     return (
@@ -255,25 +291,30 @@ const DeviceDetails = () => {
       setUpdateStatusText('Startar uppdatering...');
       await Promise.all([
         commandsApi.send(device.id, 'full_update'),
-        commandsApi.send(device.id, 'update'), // compatibility
+        commandsApi.send(device.id, 'update'),
       ]);
-      toast.success('Full system update initiated');
+      toast.success('Systemuppdatering startad');
     } catch (error) {
       console.error('Error updating system:', error);
-      toast.error('Failed to update system');
+      toast.error('Kunde inte starta uppdatering');
       setUpdateActive(false);
     }
   };
+  
   const handleRestart = async () => {
     try {
+      setRestartActive(true);
+      setRestartProgress(0);
+      setRestartStatusText('Startar om enheten...');
       await Promise.all([
         commandsApi.send(device.id, 'reboot'),
         commandsApi.send(device.id, 'restart'),
       ]);
-      toast.success('Device is restarting...');
+      toast.success('Enheten startar om');
     } catch (error) {
       console.error('Error restarting device:', error);
-      toast.error('Failed to restart device');
+      toast.error('Kunde inte starta om enheten');
+      setRestartActive(false);
     }
   };
 
@@ -388,70 +429,21 @@ const DeviceDetails = () => {
         </div>
       </div>
 
-        {(updateActive || (updateProgress !== null && updateProgress > 0)) && (
-          <Card className="relative overflow-hidden border-primary shadow-lg">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 animate-pulse" />
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/80 to-primary overflow-hidden">
-              <div className="h-full w-1/3 bg-white/30 animate-[shimmer_2s_infinite]" />
-            </div>
-            <CardContent className="relative py-8">
-              <div className="space-y-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
-                      <div className="relative p-4 bg-gradient-to-br from-primary to-primary/80 rounded-full shadow-lg">
-                        <Download className="w-8 h-8 text-primary-foreground animate-bounce" />
-                      </div>
-                    </div>
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                          Systemuppdatering pågår
-                        </h3>
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-primary rounded-full animate-[ping_1s_ease-in-out_infinite]" />
-                          <span className="w-2 h-2 bg-primary rounded-full animate-[ping_1s_ease-in-out_0.2s_infinite]" />
-                          <span className="w-2 h-2 bg-primary rounded-full animate-[ping_1s_ease-in-out_0.4s_infinite]" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        {updateStatusText || 'Förbereder uppdatering...'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right space-y-1">
-                    <div className="text-4xl font-bold bg-gradient-to-br from-primary via-primary to-primary/70 bg-clip-text text-transparent">
-                      {updateProgress ?? 0}%
-                    </div>
-                    <Badge variant="secondary" className="text-xs font-semibold">
-                      <Activity className="w-3 h-3 mr-1" />
-                      Aktiv
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Framsteg</span>
-                    <span>{updateProgress ?? 0} av 100</span>
-                  </div>
-                  <div className="relative">
-                    <Progress value={updateProgress ?? 0} className="h-4 shadow-inner" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite] pointer-events-none" />
-                  </div>
-                </div>
+      {/* Update Status */}
+      <OperationStatusCard 
+        type="update"
+        progress={updateProgress}
+        status={updateStatusText}
+        isActive={updateActive}
+      />
 
-                {(updateProgress ?? 0) > 75 && (
-                  <div className="flex items-center gap-2 text-sm text-primary animate-fade-in">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="font-medium">Snart klar! Enheten startar om automatiskt...</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      {/* Restart Status */}
+      <OperationStatusCard 
+        type="restart"
+        progress={restartProgress}
+        status={restartStatusText}
+        isActive={restartActive}
+      />
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
