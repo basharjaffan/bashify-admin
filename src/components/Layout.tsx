@@ -6,13 +6,9 @@ import {
   Layers, 
   Settings,
   Music2,
-  Sparkles,
-  LogOut
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -24,19 +20,9 @@ const navigation = [
 
 const Layout = () => {
   const location = useLocation();
-  const { logout, currentUser } = useAuth();
 
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success('Logged out successfully');
-    } catch (error) {
-      toast.error('Failed to log out');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -88,26 +74,6 @@ const Layout = () => {
                 );
               })}
             </nav>
-
-            {/* User & Logout - Absolute positioned right */}
-            <div className="absolute right-6 flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-muted/50 rounded-full border border-border/50">
-                <div className="relative">
-                  <div className="w-2.5 h-2.5 rounded-full bg-success" />
-                  <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-success animate-ping opacity-75" />
-                </div>
-                <span className="text-xs font-semibold">{currentUser?.email}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                className="hover:bg-destructive/10 hover:text-destructive"
-                title="Log out"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
 
           {/* Mobile Navigation */}
