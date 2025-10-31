@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Radio, 
@@ -6,9 +6,13 @@ import {
   Layers, 
   Settings,
   Music2,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -20,9 +24,22 @@ const navigation = [
 
 const Layout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, currentUser } = useAuth();
 
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success('Logged out successfully');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Failed to log out');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -74,6 +91,23 @@ const Layout = () => {
                 );
               })}
             </nav>
+
+            {/* User section - Absolute positioned right */}
+            <div className="absolute right-6 flex items-center gap-3">
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-sm font-medium">{currentUser?.displayName || 'User'}</span>
+                <span className="text-xs text-muted-foreground">{currentUser?.email}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
 
           </div>
 
