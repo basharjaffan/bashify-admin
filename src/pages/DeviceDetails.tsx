@@ -13,7 +13,6 @@ import { Slider } from '../components/ui/slider';
 import { Progress } from '../components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ArrowLeft, Play, Pause, Wifi, Cable, Activity, Clock, RefreshCw, Volume2, Power, Cpu, HardDrive, MemoryStick, Settings, Download, Pencil, Check, X, CheckCircle2 } from 'lucide-react';
-import { BluetoothSettings } from '../components/BluetoothSettings';
 import { toast } from 'sonner';
 import { doc, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -729,9 +728,6 @@ const DeviceDetails = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Bluetooth Audio Section */}
-      <BluetoothSettings deviceId={device.id} />
     </div>
   );
 };

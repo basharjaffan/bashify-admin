@@ -150,7 +150,7 @@ export const usersApi = {
 
 // Commands API
 export const commandsApi = {
-  send: async (deviceId: string, action: string | { action: string; ssid?: string; password?: string }, streamUrl?: string, volume?: number, extra?: any) => {
+  send: async (deviceId: string, action: string | { action: string; ssid?: string; password?: string }, streamUrl?: string, volume?: number) => {
     const commandsRef = collection(db, 'config', 'devices', 'list', deviceId, 'commands');
 
     // Handle both string actions and object actions (for WiFi commands)
@@ -161,7 +161,6 @@ export const commandsApi = {
         password: action.password || null,
         streamUrl: null,
         volume: null,
-        ...(extra || {}),
         processed: false,
         createdAt: serverTimestamp()
       });
@@ -170,7 +169,6 @@ export const commandsApi = {
         action,
         streamUrl: streamUrl || null,
         volume: volume || null,
-        ...(extra || {}),
         processed: false,
         createdAt: serverTimestamp()
       });
