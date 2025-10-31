@@ -15,8 +15,8 @@ export function OperationStatusCard({ type, progress, status, isActive }: Operat
 
   const isUpdate = type === 'update';
   const Icon = isUpdate ? Download : RefreshCw;
-  const title = isUpdate ? 'Systemuppdatering pågår' : 'Enheten startar om';
-  const defaultStatus = isUpdate ? 'Förbereder uppdatering...' : 'Startar om enheten...';
+  const title = isUpdate ? 'System Update in Progress' : 'Device Restarting';
+  const defaultStatus = isUpdate ? 'Preparing update...' : 'Restarting device...';
 
   return (
     <Card className="relative overflow-hidden border-primary shadow-lg">
@@ -56,15 +56,15 @@ export function OperationStatusCard({ type, progress, status, isActive }: Operat
               </div>
               <Badge variant="secondary" className="text-xs font-semibold">
                 <Activity className="w-3 h-3 mr-1" />
-                Aktiv
+                Active
               </Badge>
             </div>
           </div>
           
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Framsteg</span>
-              <span>{progress} av 100</span>
+              <span>Progress</span>
+              <span>{progress} of 100</span>
             </div>
             <div className="relative">
               <Progress value={progress} className="h-4 shadow-inner" />
@@ -77,8 +77,8 @@ export function OperationStatusCard({ type, progress, status, isActive }: Operat
               <CheckCircle2 className="w-4 h-4" />
               <span className="font-medium">
                 {isUpdate 
-                  ? 'Snart klar! Enheten startar om automatiskt...' 
-                  : 'Snart klar! Enheten är strax tillbaka online...'}
+                  ? 'Almost done! Device will restart automatically...' 
+                  : 'Almost done! Device will be back online soon...'}
               </span>
             </div>
           )}

@@ -30,17 +30,21 @@ export function useTestDevice() {
     setTestDevice(initialDevice);
 
     // Start update simulation after 2 seconds
-    const startTimeout = setTimeout(() => {
-      let progress = 0;
-      setTestDevice(prev => prev ? { ...prev, updateStatus: 'updating', updateProgress: 0 } : prev);
+    const startUpdateTimeout = setTimeout(() => {
+      let updateProgress = 0;
+      setTestDevice(prev => prev ? { 
+        ...prev, 
+        updateStatus: 'updating', 
+        updateProgress: 0 
+      } : prev);
       
-      const interval = setInterval(() => {
-        progress += 5;
+      const updateInterval = setInterval(() => {
+        updateProgress += 5;
         
-        if (progress <= 100) {
+        if (updateProgress <= 100) {
           setTestDevice(prev => prev ? { 
             ...prev, 
-            updateProgress: progress,
+            updateProgress,
             lastSeen: new Date()
           } : prev);
         } else {
@@ -53,23 +57,58 @@ export function useTestDevice() {
             lastSeen: new Date()
           } : prev);
           
-          // Clear status after 3 seconds
+          clearInterval(updateInterval);
+          
+          // Start restart simulation after update completes
           setTimeout(() => {
+            let restartProgress = 0;
             setTestDevice(prev => prev ? {
               ...prev,
               updateStatus: 'idle',
               updateProgress: 0,
+              restartStatus: 'restarting',
+              restartProgress: 0,
               lastSeen: new Date()
             } : prev);
-          }, 3000);
-          
-          clearInterval(interval);
+            
+            const restartInterval = setInterval(() => {
+              restartProgress += 10;
+              
+              if (restartProgress <= 100) {
+                setTestDevice(prev => prev ? {
+                  ...prev,
+                  restartProgress,
+                  lastSeen: new Date()
+                } : prev);
+              } else {
+                // Restart complete
+                setTestDevice(prev => prev ? {
+                  ...prev,
+                  restartStatus: 'success',
+                  restartProgress: 100,
+                  lastSeen: new Date()
+                } : prev);
+                
+                // Clear restart status after 3 seconds
+                setTimeout(() => {
+                  setTestDevice(prev => prev ? {
+                    ...prev,
+                    restartStatus: 'idle',
+                    restartProgress: 0,
+                    lastSeen: new Date()
+                  } : prev);
+                }, 3000);
+                
+                clearInterval(restartInterval);
+              }
+            }, 500); // Faster for restart
+          }, 2000);
         }
       }, 1000); // Update every second
     }, 2000);
 
     return () => {
-      clearTimeout(startTimeout);
+      clearTimeout(startUpdateTimeout);
     };
   }, []);
 

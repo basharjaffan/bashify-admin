@@ -65,7 +65,7 @@ const DeviceDetails = () => {
         (device.updateProgress > 0 && device.updateProgress < 100)
       );
       setUpdateStatusText(
-        device.updateStatus || (device.updateProgress >= 100 ? 'Uppdatering slutförd' : '')
+        device.updateStatus || (device.updateProgress >= 100 ? 'Update completed' : '')
       );
     }
     if (typeof device.restartProgress === 'number') {
@@ -75,7 +75,7 @@ const DeviceDetails = () => {
         (device.restartProgress > 0 && device.restartProgress < 100)
       );
       setRestartStatusText(
-        device.restartStatus || (device.restartProgress >= 100 ? 'Omstart slutförd' : '')
+        device.restartStatus || (device.restartProgress >= 100 ? 'Restart completed' : '')
       );
     }
   }, [device?.updateProgress, device?.updateStatus, device?.restartProgress, device?.restartStatus]);
@@ -156,7 +156,7 @@ const DeviceDetails = () => {
           if (recentProcessed && updateActive) {
             setUpdateActive(false);
             setUpdateProgress(100);
-            setUpdateStatusText('Uppdatering slutförd');
+            setUpdateStatusText('Update completed');
           }
         }
         
@@ -182,7 +182,7 @@ const DeviceDetails = () => {
           if (recentRestartProcessed && restartActive) {
             setRestartActive(false);
             setRestartProgress(100);
-            setRestartStatusText('Omstart slutförd');
+            setRestartStatusText('Restart completed');
           }
         }
       },
@@ -330,15 +330,15 @@ const DeviceDetails = () => {
     try {
       setUpdateActive(true);
       setUpdateProgress(0);
-      setUpdateStatusText('Startar uppdatering...');
+      setUpdateStatusText('Starting update...');
       await Promise.all([
         commandsApi.send(device.id, 'full_update'),
         commandsApi.send(device.id, 'update'),
       ]);
-      toast.success('Systemuppdatering startad');
+      toast.success('System update started');
     } catch (error) {
       console.error('Error updating system:', error);
-      toast.error('Kunde inte starta uppdatering');
+      toast.error('Failed to start update');
       setUpdateActive(false);
     }
   };
@@ -347,15 +347,15 @@ const DeviceDetails = () => {
     try {
       setRestartActive(true);
       setRestartProgress(0);
-      setRestartStatusText('Startar om enheten...');
+      setRestartStatusText('Restarting device...');
       await Promise.all([
         commandsApi.send(device.id, 'reboot'),
         commandsApi.send(device.id, 'restart'),
       ]);
-      toast.success('Enheten startar om');
+      toast.success('Device is restarting');
     } catch (error) {
       console.error('Error restarting device:', error);
-      toast.error('Kunde inte starta om enheten');
+      toast.error('Failed to restart device');
       setRestartActive(false);
     }
   };
