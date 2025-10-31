@@ -55,25 +55,60 @@ const DeviceDetails = () => {
     }
   }, [device?.volume]);
 
-  // Live update from device document (updateProgress/updateStatus and restartProgress/restartStatus)
+  // Sync from device object (fallback when Firestore is unavailable)
+  useEffect(() => {
+    if (!device) return;
+    if (typeof device.updateProgress === 'number') {
+      setUpdateProgress(device.updateProgress);
+      setUpdateActive(
+        device.updateStatus === 'updating' ||
+        (device.updateProgress > 0 && device.updateProgress < 100)
+      );
+      setUpdateStatusText(
+        device.updateStatus || (device.updateProgress >= 100 ? 'Uppdatering slutförd' : '')
+      );
+    }
+    if (typeof device.restartProgress === 'number') {
+      setRestartProgress(device.restartProgress);
+      setRestartActive(
+        device.restartStatus === 'restarting' ||
+        (device.restartProgress > 0 && device.restartProgress < 100)
+      );
+      setRestartStatusText(
+        device.restartStatus || (device.restartProgress >= 100 ? 'Omstart slutförd' : '')
+      );
+    }
+  }, [device?.updateProgress, device?.updateStatus, device?.restartProgress, device?.restartStatus]);
+
+  // Live update from device document (best-effort; ignored if permissions block)
   useEffect(() => {
     if (!id) return;
-    const unsub = onSnapshot(doc(db, 'config', 'devices', 'list', id), (snap) => {
-      const data: any = snap.data();
-      if (!data) return;
-      
-      // Update progress
-      const up = typeof data.updateProgress === 'number' ? data.updateProgress : 0;
-      const us = data.updateStatus || '';
-      setUpdateProgress(up);
-      if (us) setUpdateStatusText(us);
-      
-      // Restart progress
-      const rp = typeof data.restartProgress === 'number' ? data.restartProgress : 0;
-      const rs = data.restartStatus || '';
-      setRestartProgress(rp);
-      if (rs) setRestartStatusText(rs);
-    });
+    const ref = doc(db, 'config', 'devices', 'list', id);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        const data: any = snap.data();
+        if (!data) return;
+        
+        // Update progress
+        const up = typeof data.updateProgress === 'number' ? data.updateProgress : 0;
+        const us = data.updateStatus || '';
+        setUpdateProgress(up);
+        if (us) setUpdateStatusText(us);
+        setUpdateActive(us === 'updating' || (up > 0 && up < 100));
+        
+        // Restart progress
+        const rp = typeof data.restartProgress === 'number' ? data.restartProgress : 0;
+        const rs = data.restartStatus || '';
+        setRestartProgress(rp);
+        if (rs) setRestartStatusText(rs);
+        setRestartActive(rs === 'restarting' || (rp > 0 && rp < 100));
+      },
+      (err) => {
+        console.error('Device doc listener error:', err);
+        // Fallback handled by device-sync effect above
+      }
+    );
     return () => unsub();
   }, [id]);
 
@@ -82,73 +117,80 @@ const DeviceDetails = () => {
     if (!id) return;
     const commandsRef = collection(db, 'config', 'devices', 'list', id, 'commands');
     const q = query(commandsRef, orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const items = snap.docs.map((d) => {
-        const data: any = d.data();
-        const prog = data.progress ?? data.percent ?? data.updateProgress ?? null;
-        return {
-          id: d.id,
-          action: data.action,
-          processed: data.processed,
-          createdAt: data.createdAt,
-          progress: typeof prog === 'number' ? prog : null,
-          status: data.status || data.message || null,
-        };
-      });
-      setCommandLogs(items);
-      
-      // Check for active update
-      const activeUpdate = items.find((i) =>
-        (i.action === 'full_update' || i.action === 'update' || i.action === 'update_progress') &&
-        (i.processed === false || (i.progress !== null && i.progress < 100))
-      );
-      
-      if (activeUpdate) {
-        setUpdateActive(true);
-        if (activeUpdate?.progress !== undefined && activeUpdate.progress !== null) {
-          setUpdateProgress(activeUpdate.progress);
-        }
-        if (activeUpdate?.status) {
-          setUpdateStatusText(activeUpdate.status);
-        }
-      } else {
-        const recentProcessed = items.find((i) =>
-          (i.action === 'full_update' || i.action === 'update') &&
-          i.processed === true
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const items = snap.docs.map((d) => {
+          const data: any = d.data();
+          const prog = data.progress ?? data.percent ?? data.updateProgress ?? null;
+          return {
+            id: d.id,
+            action: data.action,
+            processed: data.processed,
+            createdAt: data.createdAt,
+            progress: typeof prog === 'number' ? prog : null,
+            status: data.status || data.message || null,
+          };
+        });
+        setCommandLogs(items);
+        
+        // Check for active update
+        const activeUpdate = items.find((i) =>
+          (i.action === 'full_update' || i.action === 'update' || i.action === 'update_progress') &&
+          (i.processed === false || (i.progress !== null && i.progress < 100))
         );
-        if (recentProcessed && updateActive) {
-          setUpdateActive(false);
-          setUpdateProgress(100);
-          setUpdateStatusText('Uppdatering slutförd');
+        
+        if (activeUpdate) {
+          setUpdateActive(true);
+          if (activeUpdate?.progress !== undefined && activeUpdate.progress !== null) {
+            setUpdateProgress(activeUpdate.progress);
+          }
+          if (activeUpdate?.status) {
+            setUpdateStatusText(activeUpdate.status);
+          }
+        } else {
+          const recentProcessed = items.find((i) =>
+            (i.action === 'full_update' || i.action === 'update') &&
+            i.processed === true
+          );
+          if (recentProcessed && updateActive) {
+            setUpdateActive(false);
+            setUpdateProgress(100);
+            setUpdateStatusText('Uppdatering slutförd');
+          }
         }
-      }
-      
-      // Check for active restart
-      const activeRestart = items.find((i) =>
-        (i.action === 'reboot' || i.action === 'restart' || i.action === 'restart_progress') &&
-        (i.processed === false || (i.progress !== null && i.progress < 100))
-      );
-      
-      if (activeRestart) {
-        setRestartActive(true);
-        if (activeRestart?.progress !== undefined && activeRestart.progress !== null) {
-          setRestartProgress(activeRestart.progress);
-        }
-        if (activeRestart?.status) {
-          setRestartStatusText(activeRestart.status);
-        }
-      } else {
-        const recentRestartProcessed = items.find((i) =>
-          (i.action === 'reboot' || i.action === 'restart') &&
-          i.processed === true
+        
+        // Check for active restart
+        const activeRestart = items.find((i) =>
+          (i.action === 'reboot' || i.action === 'restart' || i.action === 'restart_progress') &&
+          (i.processed === false || (i.progress !== null && i.progress < 100))
         );
-        if (recentRestartProcessed && restartActive) {
-          setRestartActive(false);
-          setRestartProgress(100);
-          setRestartStatusText('Omstart slutförd');
+        
+        if (activeRestart) {
+          setRestartActive(true);
+          if (activeRestart?.progress !== undefined && activeRestart.progress !== null) {
+            setRestartProgress(activeRestart.progress);
+          }
+          if (activeRestart?.status) {
+            setRestartStatusText(activeRestart.status);
+          }
+        } else {
+          const recentRestartProcessed = items.find((i) =>
+            (i.action === 'reboot' || i.action === 'restart') &&
+            i.processed === true
+          );
+          if (recentRestartProcessed && restartActive) {
+            setRestartActive(false);
+            setRestartProgress(100);
+            setRestartStatusText('Omstart slutförd');
+          }
         }
+      },
+      (err) => {
+        console.error('Commands listener error:', err);
+        // Ignore errors in demo mode; UI still shows local state
       }
-    });
+    );
     return () => unsub();
   }, [id, updateActive, restartActive]);
 
