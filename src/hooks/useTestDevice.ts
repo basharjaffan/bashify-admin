@@ -1,68 +1,77 @@
-import { useEffect } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
-const TEST_DEVICE_ID = 'test-device-001';
+import { useEffect, useState } from 'react';
+import type { Device } from '@/types';
 
 export function useTestDevice() {
-  useEffect(() => {
-    const createTestDevice = async () => {
-      const deviceRef = doc(db, 'config', 'devices', 'list', TEST_DEVICE_ID);
-      
-      // Create a test device that simulates an update in progress
-      await setDoc(deviceRef, {
-        name: 'Test Device (Uppdaterar)',
-        ipAddress: '192.168.1.100',
-        status: 'online',
-        volume: 75,
-        lastSeen: serverTimestamp(),
-        updateStatus: 'updating',
-        updateProgress: 35,
-        firmwareVersion: '1.0.0',
-        wifiConnected: true,
-        wifiSSID: 'Test-WiFi',
-        ethernetConnected: false,
-        cpuUsage: 45,
-        memoryUsage: 62,
-        diskUsage: 28,
-        uptime: 3600,
-      }, { merge: true });
+  const [testDevice, setTestDevice] = useState<Device | null>(null);
 
-      // Simulate progress updates
-      let progress = 35;
-      const interval = setInterval(async () => {
+  useEffect(() => {
+    // Create initial test device
+    const initialDevice: Device = {
+      id: 'test-device-001',
+      name: 'Test Device (Demo)',
+      ipAddress: '192.168.1.100',
+      status: 'online',
+      volume: 75,
+      lastSeen: new Date(),
+      updateStatus: 'idle',
+      updateProgress: 0,
+      restartStatus: 'idle',
+      restartProgress: 0,
+      firmwareVersion: '1.0.0',
+      wifiConnected: true,
+      wifiSSID: 'Test-WiFi',
+      ethernetConnected: false,
+      cpuUsage: 45,
+      memoryUsage: 62,
+      diskUsage: 28,
+      uptime: 3600,
+    };
+
+    setTestDevice(initialDevice);
+
+    // Start update simulation after 2 seconds
+    const startTimeout = setTimeout(() => {
+      let progress = 0;
+      setTestDevice(prev => prev ? { ...prev, updateStatus: 'updating', updateProgress: 0 } : prev);
+      
+      const interval = setInterval(() => {
         progress += 5;
         
         if (progress <= 100) {
-          await setDoc(deviceRef, {
+          setTestDevice(prev => prev ? { 
+            ...prev, 
             updateProgress: progress,
-            lastSeen: serverTimestamp(),
-          }, { merge: true });
+            lastSeen: new Date()
+          } : prev);
         } else {
           // Update complete
-          await setDoc(deviceRef, {
+          setTestDevice(prev => prev ? {
+            ...prev,
             updateStatus: 'success',
             updateProgress: 100,
             firmwareVersion: '1.1.0',
-            lastSeen: serverTimestamp(),
-          }, { merge: true });
+            lastSeen: new Date()
+          } : prev);
           
           // Clear status after 3 seconds
-          setTimeout(async () => {
-            await setDoc(deviceRef, {
-              updateStatus: null,
-              updateProgress: null,
-              lastSeen: serverTimestamp(),
-            }, { merge: true });
+          setTimeout(() => {
+            setTestDevice(prev => prev ? {
+              ...prev,
+              updateStatus: 'idle',
+              updateProgress: 0,
+              lastSeen: new Date()
+            } : prev);
           }, 3000);
           
           clearInterval(interval);
         }
-      }, 2000); // Update every 2 seconds
+      }, 1000); // Update every second
+    }, 2000);
 
-      return () => clearInterval(interval);
+    return () => {
+      clearTimeout(startTimeout);
     };
-
-    createTestDevice();
   }, []);
+
+  return testDevice;
 }
