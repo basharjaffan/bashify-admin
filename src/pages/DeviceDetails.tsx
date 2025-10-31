@@ -235,10 +235,7 @@ const DeviceDetails = () => {
         toast.success(`Playing ${playlist.length} tracks in loop`);
       } else {
         const url = device.streamUrl || device.currentUrl;
-        await Promise.all([
-          commandsApi.send(device.id, 'play', url),
-          commandsApi.send(device.id, 'resume', url),
-        ]);
+        await commandsApi.send(device.id, 'play', url);
         toast.success('Device playing');
       }
       // Rensa efter 2 sekunder
@@ -253,12 +250,9 @@ const DeviceDetails = () => {
   const handlePause = async () => {
     // Optimistic update
     setOptimisticStatus('paused');
-    
+
     try {
-      await Promise.all([
-        commandsApi.send(device.id, 'pause', device.streamUrl),
-        commandsApi.send(device.id, 'stop', device.streamUrl),
-      ]);
+      await commandsApi.send(device.id, 'pause', device.streamUrl);
       toast.success('Device paused');
       // Rensa efter 2 sekunder
       setTimeout(() => setOptimisticStatus(null), 2000);
@@ -277,10 +271,7 @@ const DeviceDetails = () => {
     const vol = value[0];
     try {
       await devicesApi.update(device.id, { volume: vol });
-      await Promise.all([
-        commandsApi.send(device.id, 'volume', undefined, vol),
-        commandsApi.send(device.id, 'set_volume', undefined, vol),
-      ]);
+      await commandsApi.send(device.id, 'volume', undefined, vol);
       toast.success(`Volume updated to ${vol}%`);
     } catch (error) {
       console.error('Error updating volume:', error);
@@ -330,12 +321,9 @@ const DeviceDetails = () => {
     try {
       setUpdateActive(true);
       setUpdateProgress(0);
-      setUpdateStatusText('Starting update...');
-      await Promise.all([
-        commandsApi.send(device.id, 'full_update'),
-        commandsApi.send(device.id, 'update'),
-      ]);
-      toast.success('System update started');
+      setUpdateStatusText('Startar uppdatering...');
+      await commandsApi.send(device.id, 'full_update');
+      toast.success('Full system update initiated');
     } catch (error) {
       console.error('Error updating system:', error);
       toast.error('Failed to start update');
@@ -345,14 +333,8 @@ const DeviceDetails = () => {
   
   const handleRestart = async () => {
     try {
-      setRestartActive(true);
-      setRestartProgress(0);
-      setRestartStatusText('Restarting device...');
-      await Promise.all([
-        commandsApi.send(device.id, 'reboot'),
-        commandsApi.send(device.id, 'restart'),
-      ]);
-      toast.success('Device is restarting');
+      await commandsApi.send(device.id, 'reboot');
+      toast.success('Device is restarting...');
     } catch (error) {
       console.error('Error restarting device:', error);
       toast.error('Failed to restart device');
