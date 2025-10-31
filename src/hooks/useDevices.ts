@@ -59,6 +59,10 @@ export function useDevices() {
             memoryUsage: data.memoryUsage,
             diskUsage: data.diskUsage,
             dns: data.dns,
+            updateProgress: data.updateProgress,
+            updateStatus: data.updateStatus,
+            restartProgress: data.restartProgress,
+            restartStatus: data.restartStatus,
           });
         });
         
