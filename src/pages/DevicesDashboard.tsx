@@ -55,14 +55,7 @@ export default function DevicesDashboard() {
         groupId: hasGroup ? groupId : undefined,
         streamUrl: hasGroup ? selectedGroup?.streamUrl : undefined
       });
-      
-      // Stop current music and start new group music
-      if (hasGroup && selectedGroup?.streamUrl) {
-        await commandsApi.send(device.id, 'stop');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await commandsApi.send(device.id, 'play', selectedGroup.streamUrl);
-      }
-      
+
       toast.success('Grupp uppdaterad');
     } catch (error) {
       console.error('Error updating device group:', error);
