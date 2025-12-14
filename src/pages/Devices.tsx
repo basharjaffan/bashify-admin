@@ -355,14 +355,7 @@ const Devices = () => {
         groupId: hasGroup ? newGroupId : undefined,
         streamUrl: hasGroup ? selectedGroup?.streamUrl : undefined
       });
-      
-      // Stop current music and start new group music
-      if (hasGroup && selectedGroup?.streamUrl) {
-        await commandsApi.send(deviceId, 'stop');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await commandsApi.send(deviceId, 'play', selectedGroup.streamUrl);
-      }
-      
+
       toast.success('Group updated');
     } catch (error) {
       console.error('Error updating device group:', error);
@@ -385,15 +378,7 @@ const Devices = () => {
         })
       );
       await Promise.all(updates);
-      
-      // Send play commands to all devices
-      if (hasGroup && selectedGroup?.streamUrl) {
-        const playCommands = Array.from(selectedDevices).map(deviceId =>
-          commandsApi.send(deviceId, 'play', selectedGroup.streamUrl)
-        );
-        await Promise.all(playCommands);
-      }
-      
+
       toast.success('Group assignment completed');
     } catch (error) {
       console.error('Error assigning group in bulk:', error);
