@@ -1,12 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { 
-  signOut, 
+import {
+  signOut,
   onAuthStateChanged,
   User as FirebaseUser,
   GoogleAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult
 } from 'firebase/auth';
@@ -80,18 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       prompt: 'select_account'
     });
 
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      if (error.code === 'auth/popup-blocked' || 
-          error.code === 'auth/popup-closed-by-user' ||
-          error.code === 'auth/cancelled-popup-request') {
-        console.log('Popup blocked, trying redirect...');
-        await signInWithRedirect(auth, provider);
-      } else {
-        throw error;
-      }
-    }
+    await signInWithRedirect(auth, provider);
   };
 
   const logout = async () => {
