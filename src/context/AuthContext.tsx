@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import {
@@ -32,14 +32,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const redirectHandled = useRef(false);
 
   useEffect(() => {
     console.log('[AUTH] Initializing auth...');
     let isMounted = true;
+    let authProcessed = false;
 
-    const handleUser = async (user: FirebaseUser | null) => {
-      console.log('[AUTH] Processing user:', user?.email || 'null');
+    const handleUser = async (user: FirebaseUser | null, source: string) => {
+      // Undvik att processa samma auth state flera gånger
+      if (authProcessed && source === 'onAuthStateChanged') {
+        console.log('[AUTH] Already processed from redirect, skipping onAuthStateChanged');
+        return;
+      }
+
+      console.log(`[AUTH] Processing user from ${source}:`, user?.email || 'null');
 
       if (!isMounted) {
         console.log('[AUTH] Component unmounted, skipping');
@@ -73,13 +79,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (isMounted) {
             setIsAdmin(isAdminUser);
             setCurrentUser(user);
+            authProcessed = true;
           }
         } catch (error) {
           console.error('[AUTH] Error checking admin status:', error);
           if (isMounted) {
             setIsAdmin(false);
-            // Sätt currentUser även om admin check failar
             setCurrentUser(user);
+            authProcessed = true;
           }
         }
       } else {
@@ -96,49 +103,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    const initializeAuth = async () => {
-      // VIKTIGT: Hantera redirect-resultat FÖRST innan vi sätter upp listener
-      // Detta säkerställer att vi fångar användaren från Google redirect
-      if (!redirectHandled.current) {
-        redirectHandled.current = true;
-
-        try {
-          console.log('[AUTH] Checking for redirect result...');
-          const result = await getRedirectResult(auth);
-
-          if (result && result.user) {
-            console.log('[AUTH] Redirect result found:', result.user.email);
-            // Användaren kommer från redirect - processa direkt
-            await handleUser(result.user);
-            return; // Vi är klara, onAuthStateChanged kommer också trigga men vi har redan hanterat det
-          } else {
-            console.log('[AUTH] No redirect result');
-          }
-        } catch (error: any) {
-          console.error('[AUTH] Redirect error:', error.code, error.message);
-        }
-      }
-
-      // Sätt upp auth state listener för normala fall och session persistence
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('[AUTH] onAuthStateChanged triggered:', user?.email || 'null');
-        await handleUser(user);
-      });
-
-      return unsubscribe;
-    };
-
-    let unsubscribe: (() => void) | undefined;
-
-    initializeAuth().then((unsub) => {
-      unsubscribe = unsub;
+    // Sätt upp auth state listener FÖRST - detta är kritiskt för session persistence
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('[AUTH] onAuthStateChanged triggered:', user?.email || 'null');
+      await handleUser(user, 'onAuthStateChanged');
     });
+
+    // Hantera redirect-resultat separat
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          console.log('[AUTH] Redirect result found:', result.user.email);
+          await handleUser(result.user, 'redirect');
+        } else {
+          console.log('[AUTH] No redirect result');
+        }
+      })
+      .catch((error: any) => {
+        console.error('[AUTH] Redirect error:', error.code, error.message);
+      });
 
     return () => {
       isMounted = false;
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      unsubscribe();
     };
   }, []);
 
@@ -148,9 +135,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     provider.setCustomParameters({
       prompt: 'select_account'
     });
-
-    // Reset redirect flag så vi kan hantera nästa redirect
-    redirectHandled.current = false;
 
     await signInWithRedirect(auth, provider);
   };
