@@ -34,9 +34,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    getRedirectResult(auth).catch((error) => {
-      console.error('Redirect error:', error);
-    });
+    // Hantera redirect-resultat först
+    const handleRedirect = async () => {
+      try {
+        await getRedirectResult(auth);
+      } catch (error) {
+        console.error('Redirect error:', error);
+      }
+    };
+
+    handleRedirect();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.email) {
