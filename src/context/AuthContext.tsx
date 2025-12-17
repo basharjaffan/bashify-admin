@@ -34,76 +34,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    let unsubscribe: any;
+    console.log('[AUTH] Initializing auth...');
 
-    const initAuth = async () => {
-      console.log('[AUTH] Initializing auth...');
+    // Sätt upp auth state listener FÖRST - detta är kritiskt!
+    // onAuthStateChanged triggas automatiskt när Firebase har återställt auth state
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('[AUTH] Auth state changed. User:', user?.email || 'null');
 
-      try {
-        // Vänta på redirect-resultat först
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log('[AUTH] Redirect successful:', result.user.email);
-        } else {
-          console.log('[AUTH] No redirect result (normal page load)');
+      if (user && user.email) {
+        const allowedDomains = ['uropenn.se', 'jetaime.se'];
+        const userDomain = user.email.split('@')[1];
+
+        console.log('[AUTH] Checking domain:', userDomain);
+
+        if (!allowedDomains.includes(userDomain)) {
+          console.error('[AUTH] Unauthorized domain:', userDomain);
+          await signOut(auth);
+          alert(`Endast användare från @uropenn.se eller @jetaime.se kan logga in`);
+          setCurrentUser(null);
+          setIsAdmin(false);
+          setLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error('[AUTH] Redirect error:', error);
+
+        console.log('[AUTH] Domain authorized, checking admin status...');
+
+        // Kolla admin-status EN gång vid inloggning och cacha
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userData = userDoc.data();
+          const isAdminUser = userData?.isAdmin === true;
+          console.log('[AUTH] Admin status:', isAdminUser, 'User data:', userData);
+          setIsAdmin(isAdminUser);
+        } catch (error) {
+          console.error('[AUTH] Error checking admin status:', error);
+          setIsAdmin(false);
+        }
+
+        console.log('[AUTH] Setting current user');
+        setCurrentUser(user);
+      } else {
+        console.log('[AUTH] No user, clearing state');
+        setIsAdmin(false);
+        setCurrentUser(null);
       }
 
-      // Sätt upp auth state listener efter redirect är klar
-      unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('[AUTH] Auth state changed. User:', user?.email || 'null');
+      setLoading(false);
+      console.log('[AUTH] Loading complete');
+    });
 
-        if (user && user.email) {
-          const allowedDomains = ['uropenn.se', 'jetaime.se'];
-          const userDomain = user.email.split('@')[1];
-
-          console.log('[AUTH] Checking domain:', userDomain);
-
-          if (!allowedDomains.includes(userDomain)) {
-            console.error('[AUTH] Unauthorized domain:', userDomain);
-            signOut(auth);
-            alert(`Endast användare från @uropenn.se eller @jetaime.se kan logga in`);
-            setCurrentUser(null);
-            setIsAdmin(false);
-            setLoading(false);
-            return;
-          }
-
-          console.log('[AUTH] Domain authorized, checking admin status...');
-
-          // Kolla admin-status EN gång vid inloggning och cacha
-          try {
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            const userData = userDoc.data();
-            const isAdminUser = userData?.isAdmin === true;
-            console.log('[AUTH] Admin status:', isAdminUser, 'User data:', userData);
-            setIsAdmin(isAdminUser);
-          } catch (error) {
-            console.error('[AUTH] Error checking admin status:', error);
-            setIsAdmin(false);
-          }
-
-          console.log('[AUTH] Setting current user');
-          setCurrentUser(user);
+    // Hantera redirect-resultat separat för att fånga eventuella errors
+    // Detta behövs INTE för att sätta user state - det gör onAuthStateChanged
+    // Men det kan ge oss information om redirect-errors
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          console.log('[AUTH] Redirect result received:', result.user.email);
         } else {
-          console.log('[AUTH] No user, clearing state');
-          setIsAdmin(false);
-          setCurrentUser(null);
+          console.log('[AUTH] No pending redirect result');
         }
-
+      })
+      .catch((error) => {
+        console.error('[AUTH] Redirect error:', error);
+        // Om redirect failar, sätt loading till false så användaren kan försöka igen
         setLoading(false);
-        console.log('[AUTH] Loading complete');
       });
-    };
-
-    initAuth();
 
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      unsubscribe();
     };
   }, []);
 

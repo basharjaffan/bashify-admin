@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -10,12 +10,14 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { loginWithGoogle, currentUser } = useAuth();
   const navigate = useNavigate();
+  const hasShownToast = useRef(false);
 
   // Navigera till dashboard om användaren redan är inloggad
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && !hasShownToast.current) {
+      hasShownToast.current = true;
       toast.success('Welcome back, Admin!');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [currentUser, navigate]);
 
