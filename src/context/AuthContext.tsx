@@ -37,48 +37,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribe: any;
 
     const initAuth = async () => {
+      console.log('[AUTH] Initializing auth...');
+
       try {
         // Vänta på redirect-resultat först
         const result = await getRedirectResult(auth);
         if (result) {
-          console.log('Redirect successful:', result.user.email);
+          console.log('[AUTH] Redirect successful:', result.user.email);
+        } else {
+          console.log('[AUTH] No redirect result (normal page load)');
         }
       } catch (error) {
-        console.error('Redirect error:', error);
+        console.error('[AUTH] Redirect error:', error);
       }
 
       // Sätt upp auth state listener efter redirect är klar
       unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.email) {
-        const allowedDomains = ['uropenn.se', 'jetaime.se'];
-        const userDomain = user.email.split('@')[1];
-        
-        if (!allowedDomains.includes(userDomain)) {
-          console.error('Unauthorized domain:', userDomain);
-          signOut(auth);
-          alert(`Endast användare från @uropenn.se eller @jetaime.se kan logga in`);
+        console.log('[AUTH] Auth state changed. User:', user?.email || 'null');
+
+        if (user && user.email) {
+          const allowedDomains = ['uropenn.se', 'jetaime.se'];
+          const userDomain = user.email.split('@')[1];
+
+          console.log('[AUTH] Checking domain:', userDomain);
+
+          if (!allowedDomains.includes(userDomain)) {
+            console.error('[AUTH] Unauthorized domain:', userDomain);
+            signOut(auth);
+            alert(`Endast användare från @uropenn.se eller @jetaime.se kan logga in`);
+            setCurrentUser(null);
+            setIsAdmin(false);
+            setLoading(false);
+            return;
+          }
+
+          console.log('[AUTH] Domain authorized, checking admin status...');
+
+          // Kolla admin-status EN gång vid inloggning och cacha
+          try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            const userData = userDoc.data();
+            const isAdminUser = userData?.isAdmin === true;
+            console.log('[AUTH] Admin status:', isAdminUser, 'User data:', userData);
+            setIsAdmin(isAdminUser);
+          } catch (error) {
+            console.error('[AUTH] Error checking admin status:', error);
+            setIsAdmin(false);
+          }
+
+          console.log('[AUTH] Setting current user');
+          setCurrentUser(user);
+        } else {
+          console.log('[AUTH] No user, clearing state');
+          setIsAdmin(false);
           setCurrentUser(null);
-          setIsAdmin(false);
-          setLoading(false);
-          return;
         }
-        
-        // Kolla admin-status EN gång vid inloggning och cacha
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const userData = userDoc.data();
-          setIsAdmin(userData?.isAdmin === true);
-        } catch (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        }
-      } else {
-        setIsAdmin(false);
-      }
-      
-      setCurrentUser(user);
-      setLoading(false);
-    });
+
+        setLoading(false);
+        console.log('[AUTH] Loading complete');
+      });
     };
 
     initAuth();
