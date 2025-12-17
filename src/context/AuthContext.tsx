@@ -34,18 +34,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Hantera redirect-resultat först
-    const handleRedirect = async () => {
+    let unsubscribe: any;
+
+    const initAuth = async () => {
       try {
-        await getRedirectResult(auth);
+        // Vänta på redirect-resultat först
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('Redirect successful:', result.user.email);
+        }
       } catch (error) {
         console.error('Redirect error:', error);
       }
-    };
 
-    handleRedirect();
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Sätt upp auth state listener efter redirect är klar
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.email) {
         const allowedDomains = ['uropenn.se', 'jetaime.se'];
         const userDomain = user.email.split('@')[1];
@@ -76,8 +79,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setCurrentUser(user);
       setLoading(false);
     });
+    };
 
-    return unsubscribe;
+    initAuth();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const loginWithGoogle = async () => {
