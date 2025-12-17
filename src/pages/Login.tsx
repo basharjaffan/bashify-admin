@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -8,26 +8,26 @@ import { toast } from 'sonner';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Navigera till dashboard om användaren redan är inloggad
+  useEffect(() => {
+    if (currentUser) {
+      toast.success('Welcome back, Admin!');
+      navigate('/dashboard');
+    }
+  }, [currentUser, navigate]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
+      // signInWithRedirect redirectar användaren bort från sidan
+      // så ingen kod efter detta kommer köras
       await loginWithGoogle();
-      toast.success('Welcome back, Admin!');
-      navigate('/dashboard');
     } catch (error: any) {
       console.error('Google login error:', error);
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('Sign in cancelled');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domain not authorized in Firebase Console');
-      } else {
-        toast.error('Sign in failed');
-      }
-    } finally {
+      toast.error('Sign in failed');
       setLoading(false);
     }
   };
