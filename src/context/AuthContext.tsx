@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import {
@@ -6,8 +6,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult
+  signInWithPopup
 } from 'firebase/auth';
 
 interface AuthContextType {
@@ -32,7 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const redirectHandled = useRef(false);
 
   useEffect(() => {
     console.log('[AUTH] Initializing auth...');
@@ -78,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error('[AUTH] Error checking admin status:', error);
           if (isMounted) {
             setIsAdmin(false);
-            // Sätt currentUser även om admin check failar
             setCurrentUser(user);
           }
         }
@@ -96,63 +93,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    const initializeAuth = async () => {
-      // VIKTIGT: Hantera redirect-resultat FÖRST innan vi sätter upp listener
-      // Detta säkerställer att vi fångar användaren från Google redirect
-      if (!redirectHandled.current) {
-        redirectHandled.current = true;
-
-        try {
-          console.log('[AUTH] Checking for redirect result...');
-          const result = await getRedirectResult(auth);
-
-          if (result && result.user) {
-            console.log('[AUTH] Redirect result found:', result.user.email);
-            // Användaren kommer från redirect - processa direkt
-            await handleUser(result.user);
-            return; // Vi är klara, onAuthStateChanged kommer också trigga men vi har redan hanterat det
-          } else {
-            console.log('[AUTH] No redirect result');
-          }
-        } catch (error: any) {
-          console.error('[AUTH] Redirect error:', error.code, error.message);
-        }
-      }
-
-      // Sätt upp auth state listener för normala fall och session persistence
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('[AUTH] onAuthStateChanged triggered:', user?.email || 'null');
-        await handleUser(user);
-      });
-
-      return unsubscribe;
-    };
-
-    let unsubscribe: (() => void) | undefined;
-
-    initializeAuth().then((unsub) => {
-      unsubscribe = unsub;
+    // Sätt upp auth state listener
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('[AUTH] onAuthStateChanged triggered:', user?.email || 'null');
+      await handleUser(user);
     });
 
     return () => {
       isMounted = false;
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      unsubscribe();
     };
   }, []);
 
   const loginWithGoogle = async () => {
-    console.log('[AUTH] Starting Google login...');
+    console.log('[AUTH] Starting Google login with popup...');
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
       prompt: 'select_account'
     });
 
-    // Reset redirect flag så vi kan hantera nästa redirect
-    redirectHandled.current = false;
-
-    await signInWithRedirect(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged kommer automatiskt triggas med den nya användaren
+    } catch (error: any) {
+      console.error('[AUTH] Popup login error:', error.code, error.message);
+      throw error;
+    }
   };
 
   const logout = async () => {
