@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Device } from '@/types';
-import { useTestDevice } from './useTestDevice';
 
 export function useDevices() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const testDevice = useTestDevice();
 
   useEffect(() => {
     const devicesRef = collection(db, 'config', 'devices', 'list');
@@ -68,11 +66,6 @@ export function useDevices() {
           });
         });
         
-        // Add test device if available
-        if (testDevice) {
-          devicesData.unshift(testDevice);
-        }
-        
         setDevices(devicesData);
         setLoading(false);
       },
@@ -80,17 +73,12 @@ export function useDevices() {
         console.error('Error listening to devices:', err);
         setError(err as Error);
         setLoading(false);
-        
-        // If Firebase fails, still show test device
-        if (testDevice) {
-          setDevices([testDevice]);
-        }
       }
     );
 
     // Cleanup listener on unmount
     return () => unsubscribe();
-  }, [testDevice]);
+  }, []);
 
   return { devices, loading, error };
 }
